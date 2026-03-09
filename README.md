@@ -27,7 +27,33 @@ make build
 
 ### From Releases
 
-Download pre-built binaries from [Releases](https://github.com/HenriqueSchroeder/beacon/releases).
+Download the latest binary for your platform from [GitHub Releases](https://github.com/HenriqueSchroeder/beacon/releases/latest).
+
+#### Linux (amd64)
+
+```bash
+curl -sL https://github.com/HenriqueSchroeder/beacon/releases/latest/download/beacon_linux_amd64.tar.gz | tar xz
+sudo mv beacon /usr/local/bin/
+```
+
+#### macOS (Apple Silicon)
+
+```bash
+curl -sL https://github.com/HenriqueSchroeder/beacon/releases/latest/download/beacon_darwin_arm64.tar.gz | tar xz
+sudo mv beacon /usr/local/bin/
+```
+
+#### Windows
+
+Download `beacon_windows_amd64.zip` from [Releases](https://github.com/HenriqueSchroeder/beacon/releases/latest) and add to your PATH.
+
+#### Via GitHub CLI
+
+```bash
+gh release download --repo HenriqueSchroeder/beacon --pattern "*linux_amd64*"
+tar xzf beacon_linux_amd64.tar.gz
+sudo mv beacon /usr/local/bin/
+```
 
 ## Quick Start
 
