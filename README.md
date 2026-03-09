@@ -16,13 +16,19 @@ Perfect for:
 
 ## Installation
 
-### Quick Install
+### Quick Install (Linux/macOS)
 
 ```bash
 curl -sL https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.sh | sh
 ```
 
-Detects your OS and architecture automatically. Installs to `/usr/local/bin` (or `~/.local/bin` as fallback).
+### Quick Install (Windows PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.ps1 | iex
+```
+
+Both scripts detect your architecture automatically and install the latest version.
 
 ### From Source
 
