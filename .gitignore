@@ -13,7 +13,6 @@ bin/
 
 # Go
 *.mod.bak
-go.sum
 
 # IDEs
 .vscode/
@@ -30,3 +29,6 @@ build/
 # Local config
 .beacon.yml
 .env
+
+# Plans
+docs/plans/

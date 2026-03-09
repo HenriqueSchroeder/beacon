@@ -1,4 +1,4 @@
-.PHONY: build test lint clean run help
+.PHONY: build test coverage lint clean run help
 
 BIN_NAME=beacon
 BIN_DIR=bin
@@ -26,6 +26,11 @@ run: build
 
 test:
 	go test -v -cover ./...
+
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+	@rm -f coverage.out
 
 lint:
 	golangci-lint run ./...
