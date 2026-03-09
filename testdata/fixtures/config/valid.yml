@@ -1,0 +1,5 @@
+vault_path: /tmp/test-vault
+editor: nvim
+ignore:
+  - ".obsidian"
+  - "*.tmp"
