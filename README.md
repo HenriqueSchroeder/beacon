@@ -16,6 +16,14 @@ Perfect for:
 
 ## Installation
 
+### Quick Install
+
+```bash
+curl -sL https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.sh | sh
+```
+
+Detects your OS and architecture automatically. Installs to `/usr/local/bin` (or `~/.local/bin` as fallback).
+
 ### From Source
 
 ```bash
