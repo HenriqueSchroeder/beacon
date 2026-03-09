@@ -28,7 +28,7 @@ curl -sL https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install
 irm https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.ps1 | iex
 ```
 
-Both scripts detect your architecture automatically and install the latest version.
+Both scripts detect your architecture automatically and install the latest version. To update, run the same command again.
 
 ### From Source
 
