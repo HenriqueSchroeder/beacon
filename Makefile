@@ -4,7 +4,7 @@ BIN_NAME=beacon
 BIN_DIR=bin
 CMD_DIR=cmd/$(BIN_NAME)
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "v0.1.0")
-BUILD_FLAGS=-ldflags "-X main.Version=$(VERSION)"
+BUILD_FLAGS=-ldflags "-X main.version=$(VERSION)"
 
 help:
 	@echo "Beacon Makefile"
