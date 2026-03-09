@@ -1,176 +1,157 @@
-# Beacon 🔦
+# Beacon
 
 A lightweight, fast CLI for managing Obsidian vaults on headless servers.
 
 ## Why Beacon?
 
-The official Obsidian CLI requires the Obsidian app (Electron-based) to be installed. This makes it **impossible to use on headless servers** (Linux without GUI).
+The official Obsidian CLI requires the Obsidian app (Electron-based) to be installed. This makes it impossible to use on headless servers (Linux without GUI).
 
-**Beacon** is a standalone CLI that works directly with vault files — **no Electron, no GUI needed**.
+Beacon is a standalone CLI that works directly with vault files — no Electron, no GUI needed.
 
 Perfect for:
-- 🖥️ Server-side vault automation
-- 🔧 CI/CD pipelines
-- 🐋 Docker containers
-- ⚙️ Scheduled tasks & cron jobs
-
-## Features
-
-- ⚡ **Fast** — Single Go binary, instant startup
-- 🖥️ **Headless** — Works on any Linux server
-- 🔍 **Powerful search** — Find notes by content, tags, frontmatter
-- 📝 **Smart templates** — Create notes with automatic structure
-- 🔗 **Link validation** — Detect broken backlinks
-- 🎯 **Inbox workflows** — Organize & process inbox efficiently
-- ⚙️ **Git integration** — Auto commit & push changes
+- Server-side vault automation
+- CI/CD pipelines
+- Docker containers
+- Scheduled tasks & cron jobs
 
 ## Installation
 
-### Quick Install (Homebrew — coming soon)
-```bash
-brew install henrique/tap/beacon
-```
-
 ### From Source
+
 ```bash
 git clone https://github.com/HenriqueSchroeder/beacon.git
 cd beacon
 make build
-./bin/beacon --version
+./bin/beacon version
 ```
 
 ### From Releases
+
 Download pre-built binaries from [Releases](https://github.com/HenriqueSchroeder/beacon/releases).
 
 ## Quick Start
 
-### Setup
 ```bash
-# Export your vault path (or set in ~/.beacon.yml)
-export VAULT_PATH="/home/user/obsidian-vault"
+# Set your vault path
+export BEACON_VAULT_PATH="/path/to/your/obsidian-vault"
+
+# Or use a config file
+beacon --config .beacon.yml list
 ```
 
-### Examples
+### List notes
+
 ```bash
-# Search notes
+beacon list
+```
+
+### Search by content (requires ripgrep)
+
+```bash
 beacon search "golang tips"
+beacon search "TODO" --json
+```
 
-# List inbox (unprocessed notes)
-beacon list inbox
+### Search by tags
 
-# Create a note
-beacon create "My new idea"
+```bash
+beacon search --tags "project,idea"
+```
 
-# Show all available tags
-beacon list tags
+### Search by note type
 
-# Validate broken links
-beacon validate
-
-# Sync vault (git pull + push)
-beacon sync
+```bash
+beacon search --type "daily"
 ```
 
 ## Commands
 
 ```
-beacon search <query>      Search notes by content
-beacon list [type]         List notes (inbox, tags, all)
-beacon create <name>       Create new note with template
-beacon edit <file>         Open note in $EDITOR
-beacon sync                Git pull & push vault
-beacon validate            Check for broken backlinks
-beacon config              Show/edit configuration
-beacon version             Show version info
+beacon list                    List all notes in the vault
+beacon search <query>          Search notes by content (uses ripgrep)
+beacon search --tags <t1,t2>   Search notes by tags
+beacon search --type <type>    Search notes by frontmatter type
+beacon version                 Show version info
 ```
+
+### Search flags
+
+| Flag     | Description                        |
+|----------|------------------------------------|
+| `--json` | Output results as JSON             |
+| `--tags` | Filter by tags (comma-separated)   |
+| `--type` | Filter by frontmatter type         |
 
 ## Configuration
 
-Create `~/.beacon.yml` or `.beacon.yml` in your vault:
+Create `.beacon.yml`:
 
 ```yaml
-# Vault configuration
 vault_path: /home/user/obsidian-vault
 editor: nvim
-
-# Ignore patterns
 ignore:
-  - "*.tmp"
-  - ".obsidian/*"
-  - "node_modules/*"
-
-# Git settings
-git:
-  auto_commit: true
-  auto_push: true
-  author:
-    name: "Your Name"
-    email: "your@email.com"
-
-# Note templates
-templates:
-  default: "templates/default.md"
-  daily: "templates/daily.md"
+  - ".obsidian"
 ```
 
-## Examples
+Or set the vault path via environment variable:
 
-### Daily Workflow
 ```bash
-# Check inbox every morning
-beacon list inbox
-
-# Create daily note
-beacon create "$(date +%Y-%m-%d)"
-
-# Sync before sleeping
-beacon sync
+export BEACON_VAULT_PATH="/path/to/vault"
 ```
 
-### Automation (Cron)
-```bash
-# Every 2 hours: validate links
-0 */2 * * * beacon validate
+### Config options
 
-# Every day at 9 AM: commit changes
-0 9 * * * beacon sync
-```
+| Option       | Default      | Description                  |
+|--------------|--------------|------------------------------|
+| `vault_path` | (required)   | Path to Obsidian vault       |
+| `editor`     | `vim`        | Default editor               |
+| `ignore`     | `.obsidian`  | Directories to ignore        |
+
+## Dependencies
+
+- **Go 1.21+** for building
+- **ripgrep** (`rg`) for content search
 
 ## Development
 
 ```bash
-make build    # Compile binary
-make test     # Run tests
-make lint     # Run linter (requires golangci-lint)
-make clean    # Remove artifacts
-make install  # Install locally
+make build      # Compile binary
+make test       # Run tests
+make coverage   # Test coverage report
+make lint       # Run linter (requires golangci-lint)
+make clean      # Remove artifacts
+make install    # Install locally
 ```
 
 ### Project Structure
+
 ```
 beacon/
-├── cmd/beacon/          # CLI entry point
-├── internal/vault/      # Vault operations
-├── internal/search/     # Search engine
-├── internal/git/        # Git integration
-└── tests/               # Test suite
+├── cmd/beacon/        # CLI entry point (Cobra commands)
+│   ├── main.go        # Root command & version
+│   ├── list.go        # List command
+│   └── search.go      # Search command
+├── pkg/
+│   ├── config/        # YAML configuration loading
+│   ├── vault/         # Vault interface & FileVault implementation
+│   └── search/        # Search: ripgrep + vault-based searchers
+└── testdata/fixtures/ # Test fixtures
 ```
 
 ## Roadmap
 
-- [ ] v0.2 — Full search implementation
-- [ ] v0.3 — Git integration & auto-sync
-- [ ] v0.4 — Link validation
-- [ ] v0.5 — Configuration system
-- [ ] v1.0 — Stable release
+- [ ] Git integration & auto-sync
+- [ ] Note creation with templates
+- [ ] Link validation (broken backlinks)
+- [ ] Inbox workflows
 
 ## Contributing
 
 Contributions welcome! Please:
 1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit changes (`git commit -am 'Add feature'`)
-4. Push to branch (`git push origin feature/your-feature`)
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Commit changes (`git commit -m 'feat: add feature'`)
+4. Push to branch (`git push origin feat/your-feature`)
 5. Open a Pull Request
 
 ## License
