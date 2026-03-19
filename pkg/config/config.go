@@ -8,9 +8,17 @@ import (
 )
 
 type Config struct {
-	VaultPath string   `yaml:"vault_path"`
-	Editor    string   `yaml:"editor"`
-	Ignore    []string `yaml:"ignore"`
+	VaultPath  string            `yaml:"vault_path"`
+	Editor     string            `yaml:"editor"`
+	Ignore     []string          `yaml:"ignore"`
+	Validation ValidationConfig  `yaml:"validation"`
+}
+
+type ValidationConfig struct {
+	Enabled        bool     `yaml:"enabled"`
+	IgnorePatterns []string `yaml:"ignore_patterns"`
+	FuzzyThreshold float64  `yaml:"fuzzy_threshold"`
+	StrictMode     bool     `yaml:"strict_mode"`
 }
 
 func LoadFrom(path string) (*Config, error) {
@@ -46,5 +54,8 @@ func applyDefaults(cfg *Config) {
 	}
 	if len(cfg.Ignore) == 0 {
 		cfg.Ignore = []string{".obsidian"}
+	}
+	if cfg.Validation.FuzzyThreshold == 0 {
+		cfg.Validation.FuzzyThreshold = 0.8
 	}
 }
