@@ -64,16 +64,16 @@ func (v *Validator) BuildIndex(ctx context.Context) error {
 
 	for _, note := range notes {
 		// Index note by both full path and filename
-		v.noteIndex[note.Path] = true
-		v.noteIndex[filepath.Base(note.Path)] = true
-		v.noteIndex[strings.TrimSuffix(filepath.Base(note.Path), ".md")] = true
+		v.noteIndex[strings.ToLower(note.Path)] = true
+		v.noteIndex[strings.ToLower(filepath.Base(note.Path))] = true
+		v.noteIndex[strings.ToLower(strings.TrimSuffix(filepath.Base(note.Path), ".md"))] = true
 
 		// Extract headings from content
 		headings := extractHeadings(note.Content)
 		if len(headings) > 0 {
-			v.headingIndex[note.Path] = headings
-			v.headingIndex[filepath.Base(note.Path)] = headings
-			v.headingIndex[strings.TrimSuffix(filepath.Base(note.Path), ".md")] = headings
+			v.headingIndex[strings.ToLower(note.Path)] = headings
+			v.headingIndex[strings.ToLower(filepath.Base(note.Path))] = headings
+			v.headingIndex[strings.ToLower(strings.TrimSuffix(filepath.Base(note.Path), ".md"))] = headings
 		}
 	}
 

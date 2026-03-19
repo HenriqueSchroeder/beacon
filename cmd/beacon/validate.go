@@ -36,6 +36,14 @@ var validateCmd = &cobra.Command{
 	Short: "Validate wiki links in vault notes",
 	Long:  "Validate wiki links in vault notes. Checks if [[links]] point to valid notes and headings.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Warn if unimplemented flags are used
+		if validateFix {
+			fmt.Fprintln(os.Stderr, "aviso: --fix ainda não implementado")
+		}
+		if validateUseCache {
+			fmt.Fprintln(os.Stderr, "aviso: --use-cache ainda não implementado")
+		}
+
 		cfg, err := config.LoadFrom(cfgFile)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
@@ -55,17 +63,17 @@ var validateCmd = &cobra.Command{
 		}
 
 		var results []validate.DocumentValidation
-		var err2 error
+		var validationErr error
 
 		// Validate either a specific file or all files
 		if validateFile != "" {
-			results, err2 = validateSingleFile(ctx, v, validator, validateFile)
+			results, validationErr = validateSingleFile(ctx, v, validator, validateFile)
 		} else {
-			results, err2 = validator.ValidateAll(ctx)
+			results, validationErr = validator.ValidateAll(ctx)
 		}
 
-		if err2 != nil {
-			return fmt.Errorf("validation failed: %w", err2)
+		if validationErr != nil {
+			return fmt.Errorf("validation failed: %w", validationErr)
 		}
 
 		// Sort results by filepath for consistent output
@@ -205,30 +213,4 @@ func outputText(results []validate.DocumentValidation) {
 	}
 }
 
-// Config validation extensions
-// These would be added to the Config struct in the future
-type ValidationConfig struct {
-	Enabled       bool     `yaml:"enabled"`
-	IgnorePatterns []string `yaml:"ignore_patterns"`
-	FuzzyThreshold float64  `yaml:"fuzzy_threshold"`
-	StrictMode    bool     `yaml:"strict_mode"`
-}
 
-// Example config structure for documentation
-var exampleValidationConfig = `
-# Validation configuration example
-# Add this to .beacon.yml:
-
-validation:
-  enabled: true
-  fuzzy_threshold: 0.8
-  strict_mode: false
-  ignore_patterns:
-    - "*.tmp"
-    - "draft-*"
-`
-
-func init() {
-	// This init runs when the package is imported
-	_ = exampleValidationConfig
-}
