@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	VaultPath  string            `yaml:"vault_path"`
-	Editor     string            `yaml:"editor"`
-	Ignore     []string          `yaml:"ignore"`
-	Validation ValidationConfig  `yaml:"validation"`
-	TypePaths  map[string]string `yaml:"type_paths"`
+	VaultPath    string            `yaml:"vault_path"`
+	TemplatesDir string            `yaml:"templates_dir"`
+	Editor       string            `yaml:"editor"`
+	Ignore       []string          `yaml:"ignore"`
+	Validation   ValidationConfig  `yaml:"validation"`
+	TypePaths    map[string]string `yaml:"type_paths"`
 }
 
 type ValidationConfig struct {
@@ -52,6 +53,9 @@ func LoadFrom(path string) (*Config, error) {
 func applyDefaults(cfg *Config) {
 	if cfg.Editor == "" {
 		cfg.Editor = "vim"
+	}
+	if cfg.TemplatesDir == "" {
+		cfg.TemplatesDir = "700 - Recursos/Templates"
 	}
 	if len(cfg.Ignore) == 0 {
 		cfg.Ignore = []string{".obsidian"}

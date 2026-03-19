@@ -24,6 +24,7 @@ func NewTemplateLoader(vaultPath, templatesDir string) *TemplateLoader {
 }
 
 // LoadTemplate loads a template by name. First tries vault, then fallback hardcoded templates
+// ctx reserved for future use
 func (tl *TemplateLoader) LoadTemplate(ctx context.Context, templateName string) (string, error) {
 	// Try to load from vault first
 	templatePath := filepath.Join(tl.vaultPath, tl.templatesDir, templateName+".md")
@@ -70,20 +71,20 @@ func (tl *TemplateLoader) ListTemplates(ctx context.Context) ([]string, error) {
 
 // Hardcoded templates with sensible defaults
 var hardcodedTemplates = map[string]string{
-	"default": `# {{title}}
+	"default": `# {{.Title}}
 
-**Date:** {{date}}
-**Created:** {{now}}
-{{#tags}}**Tags:** {{tags}}{{/tags}}
+**Date:** {{.Date}}
+**Created:** {{.Now.Format "2006-01-02 15:04:05"}}
+{{if .Tags}}**Tags:** {{.Tags}}{{end}}
 
 ## Content
 
 `,
 
-	"daily": `# Daily Note - {{date}}
+	"daily": `# Daily Note - {{.Date}}
 
-**Created:** {{now}}
-{{#tags}}**Tags:** {{tags}}{{/tags}}
+**Created:** {{.Now.Format "2006-01-02 15:04:05"}}
+{{if .Tags}}**Tags:** {{.Tags}}{{end}}
 
 ## Summary
 
@@ -93,11 +94,11 @@ var hardcodedTemplates = map[string]string{
 
 `,
 
-	"project": `# {{title}}
+	"project": `# {{.Title}}
 
-**Created:** {{date}}
-**Created at:** {{now}}
-{{#tags}}**Tags:** {{tags}}{{/tags}}
+**Created:** {{.Date}}
+**Created at:** {{.Now.Format "2006-01-02 15:04:05"}}
+{{if .Tags}}**Tags:** {{.Tags}}{{end}}
 
 ## Overview
 
@@ -113,11 +114,11 @@ var hardcodedTemplates = map[string]string{
 
 `,
 
-	"meeting": `# Meeting: {{title}}
+	"meeting": `# Meeting: {{.Title}}
 
-**Date:** {{date}}
-**Time:** {{now}}
-{{#tags}}**Attendees:** {{tags}}{{/tags}}
+**Date:** {{.Date}}
+**Time:** {{.Now.Format "2006-01-02 15:04:05"}}
+{{if .Tags}}**Attendees:** {{.Tags}}{{end}}
 
 ## Agenda
 
@@ -131,11 +132,11 @@ var hardcodedTemplates = map[string]string{
 
 `,
 
-	"template": `# Template: {{title}}
+	"template": `# Template: {{.Title}}
 
 **Version:** 1.0
-**Created:** {{now}}
-{{#tags}}**Tags:** {{tags}}{{/tags}}
+**Created:** {{.Now.Format "2006-01-02 15:04:05"}}
+{{if .Tags}}**Tags:** {{.Tags}}{{end}}
 
 ## Purpose
 

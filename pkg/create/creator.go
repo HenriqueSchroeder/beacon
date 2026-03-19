@@ -136,8 +136,8 @@ func (c *Creator) resolvePath(opts CreateNoteOptions) (string, error) {
 
 // renderTemplate renders a template string with data
 func renderTemplate(templateStr string, data RenderData) (string, error) {
-	// Create a text/template with custom functions
-	tmpl, err := template.New("note").Funcs(templateFuncs()).Parse(templateStr)
+	// Create a text/template using Go struct notation
+	tmpl, err := template.New("note").Parse(templateStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
@@ -148,36 +148,6 @@ func renderTemplate(templateStr string, data RenderData) (string, error) {
 	}
 
 	return result.String(), nil
-}
-
-// templateFuncs returns custom template functions
-func templateFuncs() template.FuncMap {
-	return template.FuncMap{
-		"title": func(v interface{}) string {
-			if data, ok := v.(RenderData); ok {
-				return data.Title
-			}
-			return fmt.Sprintf("%v", v)
-		},
-		"date": func(v interface{}) string {
-			if data, ok := v.(RenderData); ok {
-				return data.Date
-			}
-			return ""
-		},
-		"tags": func(v interface{}) string {
-			if data, ok := v.(RenderData); ok {
-				return data.Tags
-			}
-			return ""
-		},
-		"now": func(v interface{}) string {
-			if data, ok := v.(RenderData); ok {
-				return data.Now.Format("2006-01-02 15:04:05 MST")
-			}
-			return ""
-		},
-	}
 }
 
 // sanitizeFilename converts a title to a safe filename
