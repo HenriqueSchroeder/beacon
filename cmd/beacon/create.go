@@ -45,11 +45,11 @@ Examples:
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		// Build type_paths from config (will add to Config struct in next step)
-		typePaths := getTypePaths(cfg)
+		// Use type_paths from config
+		typePaths := cfg.TypePaths
 
-		// Create template loader
-		loader := templates.NewTemplateLoader(cfg.VaultPath, "700 - Recursos/Templates")
+		// Create template loader with configured templates directory
+		loader := templates.NewTemplateLoader(cfg.VaultPath, cfg.TemplatesDir)
 
 		// Create creator
 		creator := create.NewCreator(cfg.VaultPath, loader, typePaths)
@@ -83,18 +83,3 @@ Examples:
 	},
 }
 
-// getTypePaths returns the type_paths mapping from config
-func getTypePaths(cfg *config.Config) map[string]string {
-	if cfg.TypePaths != nil && len(cfg.TypePaths) > 0 {
-		return cfg.TypePaths
-	}
-
-	// Fallback defaults if not configured
-	return map[string]string{
-		"daily":     "100 - Diário",
-		"projects":  "200 - Projetos",
-		"resources": "700 - Recursos",
-		"work":      "300 - Trabalho",
-		"personal":  "400 - Pessoal",
-	}
-}
