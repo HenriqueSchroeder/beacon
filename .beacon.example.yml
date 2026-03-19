@@ -1,0 +1,29 @@
+# Beacon Configuration Example
+# Copy this to .beacon.yml and update paths for your setup
+
+vault_path: /home/henrique/obsidian-vault
+editor: nvim
+
+ignore:
+  - ".obsidian"
+  - "*.tmp"
+  - ".DS_Store"
+  - "node_modules"
+
+# Note type to directory mapping
+# Used by 'beacon create --type <type>' command
+type_paths:
+  daily: "100 - Diário"
+  projects: "200 - Projetos"
+  work: "300 - Trabalho"
+  personal: "400 - Pessoal"
+  resources: "700 - Recursos"
+
+# Validation settings (optional)
+validation:
+  enabled: true
+  fuzzy_threshold: 0.8
+  strict_mode: false
+  ignore_patterns:
+    - "*.bak"
+    - "*.swp"

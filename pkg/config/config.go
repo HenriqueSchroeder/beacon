@@ -12,6 +12,7 @@ type Config struct {
 	Editor     string            `yaml:"editor"`
 	Ignore     []string          `yaml:"ignore"`
 	Validation ValidationConfig  `yaml:"validation"`
+	TypePaths  map[string]string `yaml:"type_paths"`
 }
 
 type ValidationConfig struct {
@@ -57,5 +58,14 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Validation.FuzzyThreshold == 0 {
 		cfg.Validation.FuzzyThreshold = 0.8
+	}
+	if cfg.TypePaths == nil {
+		cfg.TypePaths = map[string]string{
+			"daily":     "100 - Diário",
+			"projects":  "200 - Projetos",
+			"resources": "700 - Recursos",
+			"work":      "300 - Trabalho",
+			"personal":  "400 - Pessoal",
+		}
 	}
 }
