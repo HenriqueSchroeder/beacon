@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/HenriqueSchroeder/beacon/pkg/config"
 	"github.com/HenriqueSchroeder/beacon/pkg/validate"
