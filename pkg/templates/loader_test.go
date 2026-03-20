@@ -30,8 +30,8 @@ func TestLoadTemplateFromHardcoded(t *testing.T) {
 		t.Errorf("expected non-empty template, got empty")
 	}
 
-	if !contains(content, "{{title}}") {
-		t.Errorf("expected template to contain {{title}}, got: %s", content)
+	if !contains(content, "{{.Title}}") {
+		t.Errorf("expected template to contain {{.Title}}, got: %s", content)
 	}
 }
 
@@ -105,7 +105,7 @@ func TestHardcodedTemplates(t *testing.T) {
 		templateKey string
 		wantContent string
 	}{
-		{"default", "default", "{{title}}"},
+		{"default", "default", "{{.Title}}"},
 		{"daily", "daily", "Daily Note"},
 		{"project", "project", "Objectives"},
 		{"meeting", "meeting", "Agenda"},

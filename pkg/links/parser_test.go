@@ -213,7 +213,7 @@ func TestParser_Parse_ColumnPositions(t *testing.T) {
 
 	require.Len(t, links, 2)
 	assert.Equal(t, 6, links[0].Column)   // "Start " = 6 chars
-	assert.Equal(t, 27, links[1].Column)  // Position of second link
+	assert.Equal(t, 23, links[1].Column)  // "Start [[link1]] middle " = 23 chars
 }
 
 func TestParser_Parse_ConsecutiveLinks(t *testing.T) {

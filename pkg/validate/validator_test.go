@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/HenriqueSchroeder/beacon/pkg/links"
 	"github.com/HenriqueSchroeder/beacon/pkg/vault"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,8 +32,8 @@ func newMockVault() *MockVault {
 	}
 }
 
-func addNote(vault *MockVault, path, content string) {
-	vault.notes[path] = &vault.Note{
+func addNote(mock *MockVault, path, content string) {
+	mock.notes[path] = &vault.Note{
 		Path:    path,
 		Content: content,
 	}
@@ -178,7 +177,7 @@ func TestValidator_Cache(t *testing.T) {
 
 	v.ClearCache()
 	result3 := v.ValidateDocument(context.Background(), sourceNote)
-	assert.NotEqual(t, result1, result3)
+	assert.NotSame(t, result1, result3)
 }
 
 func TestValidator_FuzzySuggestion(t *testing.T) {

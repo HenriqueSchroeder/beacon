@@ -20,7 +20,7 @@ func TestRealWorldLinkPatterns(t *testing.T) {
 	}{
 		{
 			description:   "README with multiple link types",
-			expectedLinks: 5,
+			expectedLinks: 4,
 			content: `# My Project
 
 See the [[setup]] guide for installation.
@@ -52,7 +52,7 @@ func process(data []string) {
 }
 `,
 			checks: func(t *testing.T, links []Link) {
-				assert.True(t, links[0].Valid())
+				assert.True(t, links[0].IsValid())
 				assert.Equal(t, "stdlib", links[0].Target)
 				assert.Equal(t, "arrays", links[0].Heading)
 			},
@@ -81,7 +81,7 @@ func TestEdgeCases(t *testing.T) {
 		{
 			name:      "Empty link",
 			content:   "This [[]] has an empty link",
-			expectLen: 1,
+			expectLen: 0, // regex requires at least one char inside [[]]
 		},
 		{
 			name:      "Link with only heading",

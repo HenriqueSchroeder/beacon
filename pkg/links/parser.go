@@ -97,7 +97,12 @@ func (p *Parser) parseLink(content, raw, fileName string, lineNum, column int) L
 	// Check for heading (#)
 	if hashIdx := strings.LastIndex(target, "#"); hashIdx != -1 {
 		link.Target = strings.TrimSpace(target[:hashIdx])
-		link.Heading = strings.TrimSpace(target[hashIdx+1:])
+		heading := strings.TrimSpace(target[hashIdx+1:])
+		// Strip any leftover pipe from heading (edge case: multiple pipes in link)
+		if pipeIdx := strings.Index(heading, "|"); pipeIdx != -1 {
+			heading = strings.TrimSpace(heading[:pipeIdx])
+		}
+		link.Heading = heading
 
 		if link.Alias != "" {
 			link.Type = LinkTypeHeadingAlias
