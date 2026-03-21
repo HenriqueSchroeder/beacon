@@ -1,12 +1,14 @@
 # Beacon
 
-A lightweight, fast CLI for managing Obsidian vaults on headless servers.
+A lightweight, fast CLI for managing Obsidian vaults on headless servers, with performance as a first-class concern for large vaults.
 
 ## Why Beacon?
 
 The official Obsidian CLI requires the Obsidian app (Electron-based) to be installed. This makes it impossible to use on headless servers (Linux without GUI).
 
 Beacon is a standalone CLI that works directly with vault files — no Electron, no GUI needed.
+
+The project optimizes for real Obsidian vaults that can grow large over time. New features should preserve that bias toward predictable, efficient behavior.
 
 Perfect for:
 - Server-side vault automation
