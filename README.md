@@ -112,6 +112,12 @@ beacon search --type "daily"
 beacon search --filename "Project Plan"
 ```
 
+### Search backlinks to a note
+
+```bash
+beacon search --related "Calian"
+```
+
 ### Create a note from template
 
 ```bash
@@ -137,6 +143,7 @@ beacon search <query>          Search notes by content (uses ripgrep)
 beacon search --filename <q>   Search notes by filename
 beacon search --tags <t1,t2>   Search notes by tags
 beacon search --type <type>    Search notes by frontmatter type
+beacon search --related <note> Find notes linking to a target note
 beacon create <title>          Create a new note from a template
 beacon validate                Validate wiki links in vault notes
 beacon version                 Show version info
@@ -150,6 +157,7 @@ beacon version                 Show version info
 | `--filename` | Search by filename basename; query is normalized like `create` |
 | `--tags` | Filter by tags (comma-separated)   |
 | `--type` | Filter by frontmatter type         |
+| `--related` | Find wiki-link backlinks to a note |
 
 ### Create flags
 

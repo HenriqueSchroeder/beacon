@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -84,13 +85,32 @@ func NewRipgrepSearcher(vaultPath string, ignore []string) (*RipgrepSearcher, er
 
 // SearchContent searches for the given query across all markdown files in the vault.
 func (s *RipgrepSearcher) SearchContent(ctx context.Context, query string) ([]SearchResult, error) {
+	return s.runSearch(ctx, query)
+}
+
+// SearchRelated searches for wiki-link backlinks to the resolved note target.
+func (s *RipgrepSearcher) SearchRelated(ctx context.Context, target ResolvedTarget) ([]SearchResult, error) {
+	if len(target.Aliases) == 0 {
+		return nil, fmt.Errorf("search: missing target aliases")
+	}
+
+	patterns := make([]string, 0, len(target.Aliases))
+	for _, alias := range dedupeStrings(target.Aliases) {
+		patterns = append(patterns, regexp.QuoteMeta(filepath.ToSlash(alias)))
+	}
+
+	query := fmt.Sprintf(`\[\[(?:%s)(?:#[^|\]]*)?(?:\|[^\]]*)?\]\]`, strings.Join(patterns, "|"))
+	return s.runSearch(ctx, query)
+}
+
+func (s *RipgrepSearcher) runSearch(ctx context.Context, query string) ([]SearchResult, error) {
 	args := []string{"--json", "-C", "2", "--type", "md"}
 
 	for _, pattern := range s.ignore {
 		args = append(args, "--glob", fmt.Sprintf("!%s", pattern))
 	}
 
-	args = append(args, query, s.vaultPath)
+	args = append(args, "-i", "-e", query, s.vaultPath)
 
 	cmd := exec.CommandContext(ctx, s.rgPath, args...)
 
