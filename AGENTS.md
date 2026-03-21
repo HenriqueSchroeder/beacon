@@ -8,6 +8,8 @@ Instructions for Codex in this repository.
 
 Beacon is a Go CLI for working with Obsidian vaults in headless environments. It uses Cobra for command wiring and keeps business logic in `pkg/...`.
 
+Performance matters here. Beacon should continue to feel fast on large Obsidian vaults, so prefer approaches that avoid unnecessary filesystem passes, duplicated scans, or loading work that does not contribute to the requested behavior.
+
 Primary user-facing commands:
 
 - `beacon list`
@@ -106,6 +108,7 @@ When updating docs:
 - keep command examples executable for the current repo
 - avoid documenting unimplemented behavior as if it already exists
 - align package references with the actual directory structure
+- update `README.md` and any nearby relevant docs as soon as a new feature, flag, behavior, or workflow is added or changed
 
 If docs disagree with code, fix the docs.
 
