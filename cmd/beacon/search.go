@@ -14,15 +14,17 @@ import (
 )
 
 var (
-	jsonOutput bool
-	searchTags string
-	searchType string
+	jsonOutput     bool
+	searchTags     string
+	searchType     string
+	searchFilename bool
 )
 
 func init() {
 	searchCmd.Flags().BoolVar(&jsonOutput, "json", false, "output results as JSON")
 	searchCmd.Flags().StringVar(&searchTags, "tags", "", "search by tags (comma-separated)")
 	searchCmd.Flags().StringVar(&searchType, "type", "", "search by note type")
+	searchCmd.Flags().BoolVar(&searchFilename, "filename", false, "search by filename")
 	rootCmd.AddCommand(searchCmd)
 }
 
@@ -34,6 +36,26 @@ var searchCmd = &cobra.Command{
 		cfg, err := config.LoadFrom(cfgFile)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		modeCount := 0
+		if searchTags != "" {
+			modeCount++
+		}
+		if searchType != "" {
+			modeCount++
+		}
+		if searchFilename {
+			modeCount++
+		}
+		if len(args) > 0 {
+			modeCount++
+		}
+		if modeCount > 1 && !searchFilename {
+			return fmt.Errorf("only one search mode can be used at a time")
+		}
+		if searchFilename && (searchTags != "" || searchType != "") {
+			return fmt.Errorf("only one search mode can be used at a time")
 		}
 
 		var results []search.SearchResult
@@ -65,7 +87,24 @@ var searchCmd = &cobra.Command{
 				return fmt.Errorf("search failed: %w", err)
 			}
 
+		case searchFilename:
+			if len(args) != 1 {
+				return fmt.Errorf("--filename requires a query argument")
+			}
+			v, err := vault.NewFileVault(cfg.VaultPath, cfg.Ignore)
+			if err != nil {
+				return fmt.Errorf("failed to open vault: %w", err)
+			}
+			s := search.NewVaultSearcher(v)
+			results, err = s.SearchByFilename(context.Background(), args[0])
+			if err != nil {
+				return fmt.Errorf("search failed: %w", err)
+			}
+
 		case len(args) > 0:
+			if len(args) != 1 {
+				return fmt.Errorf("provide exactly one query")
+			}
 			s, err := search.NewRipgrepSearcher(cfg.VaultPath, cfg.Ignore)
 			if err != nil {
 				return fmt.Errorf("failed to create searcher: %w", err)
@@ -76,7 +115,7 @@ var searchCmd = &cobra.Command{
 			}
 
 		default:
-			return fmt.Errorf("provide a query, --tags, or --type")
+			return fmt.Errorf("provide a query, --tags, --type, or --filename")
 		}
 
 		if len(results) == 0 {

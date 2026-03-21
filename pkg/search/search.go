@@ -16,4 +16,5 @@ type Searcher interface {
 	SearchContent(ctx context.Context, query string) ([]SearchResult, error)
 	SearchTags(ctx context.Context, tags []string) ([]SearchResult, error)
 	SearchByType(ctx context.Context, noteType string) ([]SearchResult, error)
+	SearchByFilename(ctx context.Context, query string) ([]SearchResult, error)
 }

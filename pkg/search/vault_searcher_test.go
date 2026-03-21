@@ -2,6 +2,8 @@ package search
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/HenriqueSchroeder/beacon/pkg/vault"
@@ -95,4 +97,73 @@ func TestVaultSearcher_SearchByType_EmptyVault(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Empty(t, results)
+}
+
+func TestVaultSearcher_SearchByFilename_SubstringMatch(t *testing.T) {
+	s := NewVaultSearcher(newTestVault(t))
+
+	results, err := s.SearchByFilename(context.Background(), "note")
+
+	require.NoError(t, err)
+	require.Len(t, results, 3)
+	assert.Equal(t, "note1.md", results[0].Path)
+	assert.Equal(t, "note1", results[0].Match)
+	assert.Equal(t, 0, results[0].Line)
+	assert.Empty(t, results[0].ContextBefore)
+	assert.Empty(t, results[0].ContextAfter)
+}
+
+func TestVaultSearcher_SearchByFilename_NormalizesQueryLikeCreate(t *testing.T) {
+	v := newFilenameSearchVault(t)
+	s := NewVaultSearcher(v)
+
+	results, err := s.SearchByFilename(context.Background(), "Project Plan")
+
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "Project_Plan.md", results[0].Path)
+	assert.Equal(t, "Project_Plan", results[0].Match)
+}
+
+func TestVaultSearcher_SearchByFilename_MatchesBasenameInSubdirectories(t *testing.T) {
+	v := newFilenameSearchVault(t)
+	s := NewVaultSearcher(v)
+
+	results, err := s.SearchByFilename(context.Background(), "architecture")
+
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("docs", "Beacon_Architecture.md"), results[0].Path)
+	assert.Equal(t, "Beacon_Architecture", results[0].Match)
+}
+
+func TestVaultSearcher_SearchByFilename_NoMatch(t *testing.T) {
+	v := newFilenameSearchVault(t)
+	s := NewVaultSearcher(v)
+
+	results, err := s.SearchByFilename(context.Background(), "missing")
+
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func newFilenameSearchVault(t *testing.T) vault.Vault {
+	t.Helper()
+
+	root := t.TempDir()
+	paths := []string{
+		"Project_Plan.md",
+		filepath.Join("docs", "Beacon_Architecture.md"),
+		filepath.Join(".obsidian", "Hidden.md"),
+	}
+
+	for _, path := range paths {
+		fullPath := filepath.Join(root, path)
+		require.NoError(t, os.MkdirAll(filepath.Dir(fullPath), 0o755))
+		require.NoError(t, os.WriteFile(fullPath, []byte("# Test\n"), 0o644))
+	}
+
+	v, err := vault.NewFileVault(root, []string{".obsidian"})
+	require.NoError(t, err)
+	return v
 }

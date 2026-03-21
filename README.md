@@ -104,6 +104,12 @@ beacon search --tags "project,idea"
 beacon search --type "daily"
 ```
 
+### Search by filename
+
+```bash
+beacon search --filename "Project Plan"
+```
+
 ### Create a note from template
 
 ```bash
@@ -126,6 +132,7 @@ beacon validate --strict   # exit 1 if any broken link found
 ```
 beacon list                    List all notes in the vault
 beacon search <query>          Search notes by content (uses ripgrep)
+beacon search --filename <q>   Search notes by filename
 beacon search --tags <t1,t2>   Search notes by tags
 beacon search --type <type>    Search notes by frontmatter type
 beacon create <title>          Create a new note from a template
@@ -138,6 +145,7 @@ beacon version                 Show version info
 | Flag     | Description                        |
 |----------|------------------------------------|
 | `--json` | Output results as JSON             |
+| `--filename` | Search by filename basename; query is normalized like `create` |
 | `--tags` | Filter by tags (comma-separated)   |
 | `--type` | Filter by frontmatter type         |
 

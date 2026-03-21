@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/HenriqueSchroeder/beacon/pkg/templates"
+	"github.com/HenriqueSchroeder/beacon/pkg/vault"
 )
 
 func TestNewCreator(t *testing.T) {
@@ -23,25 +24,19 @@ func TestNewCreator(t *testing.T) {
 	}
 }
 
-func TestSanitizeFilename(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"My Note", "My_Note"},
-		{"Meeting: Notes", "Meeting-_Notes"},
-		{"File/Path", "File-Path"},
-		{"What?Why!", "What-Why!"},
-		{"Colon:Test", "Colon-Test"},
+func TestResolvePathUsesSharedFilenameSanitization(t *testing.T) {
+	tmpDir := t.TempDir()
+	loader := templates.NewTemplateLoader(tmpDir, "templates")
+	creator := NewCreator(tmpDir, loader, map[string]string{})
+
+	path, err := creator.resolvePath(CreateNoteOptions{Title: "Meeting: Notes"})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := sanitizeFilename(tt.input)
-			if result != tt.expected {
-				t.Errorf("expected %q, got %q", tt.expected, result)
-			}
-		})
+	if !strings.HasSuffix(path, vault.SanitizeFilename("Meeting: Notes")+".md") {
+		t.Fatalf("expected shared filename sanitization in path, got %s", path)
 	}
 }
 
