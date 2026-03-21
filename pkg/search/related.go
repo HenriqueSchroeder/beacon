@@ -68,7 +68,11 @@ func relatedCandidates(note vault.Note) []string {
 func relatedAliases(note vault.Note) []string {
 	pathWithoutExt := strings.TrimSuffix(filepath.ToSlash(note.Path), filepath.Ext(note.Path))
 	baseWithoutExt := strings.TrimSuffix(filepath.Base(note.Path), filepath.Ext(note.Path))
-	return dedupeStrings([]string{baseWithoutExt, pathWithoutExt})
+	aliases := []string{baseWithoutExt, pathWithoutExt}
+	if note.Name != "" {
+		aliases = append(aliases, note.Name)
+	}
+	return dedupeStrings(aliases)
 }
 
 func normalizeRelatedValue(value string) string {
