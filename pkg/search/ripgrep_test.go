@@ -98,6 +98,20 @@ func TestRipgrepSearcher_SearchContent_NoResults(t *testing.T) {
 	assert.Empty(t, results)
 }
 
+func TestRipgrepSearcher_SearchContent_RemainsCaseSensitive(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeRelatedFixture(t, root, "Case.md", "TODO item\n")
+
+	s, err := NewRipgrepSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.SearchContent(context.Background(), "todo")
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
 func TestRipgrepSearcher_SearchContent_MultipleFiles(t *testing.T) {
 	requireRipgrep(t)
 
@@ -186,6 +200,26 @@ func TestRipgrepSearcher_SearchRelated_MatchesAliasesAndHeadings(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, results, 3)
+}
+
+func TestRipgrepSearcher_SearchRelated_MatchesTitleAlias(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeRelatedFixture(t, root, "target-note.md", "# Target Note\n")
+	writeRelatedFixture(t, root, "Source.md", "[[Target Note]]\n")
+
+	s, err := NewRipgrepSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.SearchRelated(context.Background(), ResolvedTarget{
+		Path:    "target-note.md",
+		Aliases: []string{"target-note", "Target Note"},
+	})
+
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "Source.md", results[0].Path)
 }
 
 func TestRipgrepSearcher_SearchRelated_DoesNotMatchPrefixCollisions(t *testing.T) {

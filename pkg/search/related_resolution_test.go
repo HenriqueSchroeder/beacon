@@ -55,6 +55,7 @@ func TestResolveRelatedTarget_ByTitle(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "target-note.md", target.Path)
+	assert.Contains(t, target.Aliases, "Target Note")
 }
 
 func TestResolveRelatedTarget_Ambiguous(t *testing.T) {
