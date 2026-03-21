@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/HenriqueSchroeder/beacon/pkg/templates"
+	"github.com/HenriqueSchroeder/beacon/pkg/vault"
 )
 
 // Creator renders and creates notes from templates
@@ -30,12 +31,12 @@ func NewCreator(vaultPath string, templateLoader *templates.TemplateLoader, type
 
 // CreateNoteOptions holds options for creating a note
 type CreateNoteOptions struct {
-	Type         string   // Note type (determines output directory)
-	Title        string   // Note title
-	Template     string   // Template name to use
-	Tags         []string // Tags to include in frontmatter
-	CustomPath   string   // Optional custom path (overrides type-based path)
-	Overwrite    bool     // Whether to overwrite existing file
+	Type       string   // Note type (determines output directory)
+	Title      string   // Note title
+	Template   string   // Template name to use
+	Tags       []string // Tags to include in frontmatter
+	CustomPath string   // Optional custom path (overrides type-based path)
+	Overwrite  bool     // Whether to overwrite existing file
 }
 
 // RenderData holds data for template rendering
@@ -128,7 +129,7 @@ func (c *Creator) resolvePath(opts CreateNoteOptions) (string, error) {
 	}
 
 	// Construct filename from title (replace spaces with underscores)
-	filename := sanitizeFilename(opts.Title) + ".md"
+	filename := vault.SanitizeFilename(opts.Title) + ".md"
 
 	fullPath := filepath.Join(c.vaultPath, baseDir, filename)
 	return fullPath, nil
@@ -148,25 +149,6 @@ func renderTemplate(templateStr string, data RenderData) (string, error) {
 	}
 
 	return result.String(), nil
-}
-
-// sanitizeFilename converts a title to a safe filename
-func sanitizeFilename(title string) string {
-	// Replace spaces with underscores
-	name := strings.ReplaceAll(title, " ", "_")
-	// Remove or replace problematic characters
-	replacer := strings.NewReplacer(
-		"/", "-",
-		"\\", "-",
-		":", "-",
-		"*", "-",
-		"?", "-",
-		"\"", "-",
-		"<", "-",
-		">", "-",
-		"|", "-",
-	)
-	return replacer.Replace(name)
 }
 
 // listTypes returns available note types

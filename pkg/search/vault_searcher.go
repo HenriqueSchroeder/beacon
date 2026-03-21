@@ -3,6 +3,8 @@ package search
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/HenriqueSchroeder/beacon/pkg/vault"
 )
@@ -45,6 +47,30 @@ func (s *VaultSearcher) SearchByType(ctx context.Context, noteType string) ([]Se
 	for _, note := range notes {
 		if t, ok := note.Frontmatter["type"]; ok && t == noteType {
 			results = append(results, noteToResult(note))
+		}
+	}
+
+	return results, nil
+}
+
+// SearchByFilename returns notes whose basename contains the normalized query.
+func (s *VaultSearcher) SearchByFilename(ctx context.Context, query string) ([]SearchResult, error) {
+	notes, err := s.vault.ListNotes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("search: failed to list notes: %w", err)
+	}
+
+	normalizedQuery := strings.ToLower(vault.SanitizeFilename(query))
+	var results []SearchResult
+	for _, note := range notes {
+		baseName := strings.TrimSuffix(filepath.Base(note.Path), filepath.Ext(note.Path))
+		normalizedBaseName := strings.ToLower(vault.SanitizeFilename(baseName))
+		if strings.Contains(normalizedBaseName, normalizedQuery) {
+			results = append(results, SearchResult{
+				Path:  note.Path,
+				Line:  0,
+				Match: baseName,
+			})
 		}
 	}
 
