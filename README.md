@@ -104,6 +104,23 @@ beacon search --tags "project,idea"
 beacon search --type "daily"
 ```
 
+### Create a note from template
+
+```bash
+beacon create "My Note" --type=daily
+beacon create "Meeting Notes" --tags="work,urgent" --template=meeting
+beacon create "Project X" --type=projects --path="Active/Project X.md"
+```
+
+### Validate wiki links
+
+```bash
+beacon validate
+beacon validate --file "Notes/My Note.md"
+beacon validate --json
+beacon validate --strict   # exit 1 if any broken link found
+```
+
 ## Commands
 
 ```
@@ -111,6 +128,8 @@ beacon list                    List all notes in the vault
 beacon search <query>          Search notes by content (uses ripgrep)
 beacon search --tags <t1,t2>   Search notes by tags
 beacon search --type <type>    Search notes by frontmatter type
+beacon create <title>          Create a new note from a template
+beacon validate                Validate wiki links in vault notes
 beacon version                 Show version info
 ```
 
@@ -122,6 +141,24 @@ beacon version                 Show version info
 | `--tags` | Filter by tags (comma-separated)   |
 | `--type` | Filter by frontmatter type         |
 
+### Create flags
+
+| Flag          | Description                                      |
+|---------------|--------------------------------------------------|
+| `--type`      | Note type (determines output directory)          |
+| `--template`  | Template name to use (default: default)          |
+| `--tags`      | Tags to include (comma-separated)                |
+| `--path`      | Custom output path (relative to vault root)      |
+| `--overwrite` | Overwrite existing file                          |
+
+### Validate flags
+
+| Flag          | Description                                      |
+|---------------|--------------------------------------------------|
+| `--json`      | Output results as JSON                           |
+| `--strict`    | Exit with error if any invalid links found       |
+| `--file`      | Validate a specific file only                    |
+
 ## Configuration
 
 Create `.beacon.yml`:
@@ -129,8 +166,18 @@ Create `.beacon.yml`:
 ```yaml
 vault_path: /home/user/obsidian-vault
 editor: nvim
+templates_dir: "700 - Recursos/Templates"
 ignore:
   - ".obsidian"
+type_paths:
+  daily: "100 - Diário"
+  projects: "200 - Projetos"
+  work: "300 - Trabalho"
+validation:
+  fuzzy_threshold: 0.8
+  strict_mode: false
+  ignore_patterns:
+    - "^http"
 ```
 
 Or set the vault path via environment variable:
@@ -141,11 +188,16 @@ export BEACON_VAULT_PATH="/path/to/vault"
 
 ### Config options
 
-| Option       | Default      | Description                  |
-|--------------|--------------|------------------------------|
-| `vault_path` | (required)   | Path to Obsidian vault       |
-| `editor`     | `vim`        | Default editor               |
-| `ignore`     | `.obsidian`  | Directories to ignore        |
+| Option                          | Default                          | Description                                  |
+|---------------------------------|----------------------------------|----------------------------------------------|
+| `vault_path`                    | (required)                       | Path to Obsidian vault                       |
+| `editor`                        | `vim`                            | Default editor                               |
+| `ignore`                        | `.obsidian`                      | Directories to ignore                        |
+| `templates_dir`                 | `700 - Recursos/Templates`       | Directory with note templates (in vault)     |
+| `type_paths`                    | see defaults                     | Map of note type → subdirectory              |
+| `validation.fuzzy_threshold`    | `0.8`                            | Similarity threshold for link suggestions    |
+| `validation.strict_mode`        | `false`                          | Fail if any invalid links found              |
+| `validation.ignore_patterns`    | `[]`                             | Regex patterns for links to skip             |
 
 ## Dependencies
 
@@ -170,19 +222,25 @@ beacon/
 ├── cmd/beacon/        # CLI entry point (Cobra commands)
 │   ├── main.go        # Root command & version
 │   ├── list.go        # List command
-│   └── search.go      # Search command
+│   ├── search.go      # Search command
+│   ├── create.go      # Create command
+│   └── validate.go    # Validate command
 ├── pkg/
 │   ├── config/        # YAML configuration loading
 │   ├── vault/         # Vault interface & FileVault implementation
-│   └── search/        # Search: ripgrep + vault-based searchers
+│   ├── search/        # Search: ripgrep + vault-based searchers
+│   ├── create/        # Note creation logic
+│   ├── templates/     # Template loading and rendering
+│   ├── validate/      # Link validation with fuzzy matching
+│   └── links/         # Wiki-style link parser
 └── testdata/fixtures/ # Test fixtures
 ```
 
 ## Roadmap
 
 - [ ] Git integration & auto-sync
-- [ ] Note creation with templates
-- [ ] Link validation (broken backlinks)
+- [x] Note creation with templates
+- [x] Link validation (broken backlinks)
 - [ ] Inbox workflows
 
 ## Contributing
