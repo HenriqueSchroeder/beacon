@@ -83,6 +83,48 @@ func (v *FileVault) ListNotes(ctx context.Context) ([]Note, error) {
 	return notes, nil
 }
 
+// ListNotePaths walks the filesystem for .md files and returns relative note paths.
+func (v *FileVault) ListNotePaths(ctx context.Context) ([]string, error) {
+	var paths []string
+
+	err := filepath.Walk(v.rootPath, func(fullPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		if filepath.Ext(fullPath) != ".md" {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(v.rootPath, fullPath)
+		if err != nil {
+			return fmt.Errorf("vault: failed to compute relative path: %w", err)
+		}
+
+		if v.shouldIgnore(relPath) {
+			return nil
+		}
+
+		paths = append(paths, relPath)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return paths, nil
+}
+
 // GetNote reads a specific file by its relative path.
 func (v *FileVault) GetNote(ctx context.Context, path string) (*Note, error) {
 	select {

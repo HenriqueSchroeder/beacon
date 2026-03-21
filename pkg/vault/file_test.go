@@ -56,6 +56,37 @@ func TestFileVault_ListNotes_WithIgnore(t *testing.T) {
 	}
 }
 
+func TestFileVault_ListNotePaths(t *testing.T) {
+	v, err := NewFileVault(fixturesPath, nil)
+	require.NoError(t, err)
+
+	paths, err := v.ListNotePaths(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, paths, 4)
+
+	pathSet := make(map[string]bool)
+	for _, path := range paths {
+		pathSet[path] = true
+	}
+	assert.True(t, pathSet["note1.md"])
+	assert.True(t, pathSet["note2.md"])
+	assert.True(t, pathSet["empty.md"])
+	assert.True(t, pathSet["subdir/note3.md"])
+}
+
+func TestFileVault_ListNotePaths_WithIgnore(t *testing.T) {
+	v, err := NewFileVault(fixturesPath, []string{"subdir"})
+	require.NoError(t, err)
+
+	paths, err := v.ListNotePaths(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, paths, 3)
+
+	for _, path := range paths {
+		assert.NotContains(t, path, "subdir")
+	}
+}
+
 func TestFileVault_ListNotes_ParsesFrontmatter(t *testing.T) {
 	v, err := NewFileVault(fixturesPath, nil)
 	require.NoError(t, err)
