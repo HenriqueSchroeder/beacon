@@ -252,6 +252,8 @@ Contributions welcome! Please:
 4. Push to branch (`git push origin feat/your-feature`)
 5. Open a Pull Request
 
+All changes intended for `main` should go through a Pull Request. Do not push or merge directly into `main`.
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.

@@ -121,6 +121,7 @@ git diff
 
 Rules:
 
+- any change intended for `main` must go through a pull request; do not merge or push directly to `main`
 - do not commit unless the user explicitly asks
 - do not push unless the user explicitly asks
 - do not rewrite history unless the user explicitly asks
