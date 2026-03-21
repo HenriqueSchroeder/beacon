@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/HenriqueSchroeder/beacon/pkg/links"
 )
 
 // rgJSON represents a single line of ripgrep JSON output.
@@ -99,8 +101,13 @@ func (s *RipgrepSearcher) SearchRelated(ctx context.Context, target ResolvedTarg
 		patterns = append(patterns, regexp.QuoteMeta(filepath.ToSlash(alias)))
 	}
 
-	query := fmt.Sprintf(`\[\[(?:%s)(?:#[^|\]]*)?(?:\|[^\]]*)?\]\]`, strings.Join(patterns, "|"))
-	return s.runSearch(ctx, query, true)
+	query := fmt.Sprintf(`\[\[(?:%s)(?:\.md)?(?:#[^|\]]*)?(?:\|[^\]]*)?\]\]`, strings.Join(patterns, "|"))
+	results, err := s.runSearch(ctx, query, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return filterRelatedResults(results, target), nil
 }
 
 func (s *RipgrepSearcher) runSearch(ctx context.Context, query string, caseInsensitive bool) ([]SearchResult, error) {
@@ -139,6 +146,27 @@ func (s *RipgrepSearcher) runSearch(ctx context.Context, query string, caseInsen
 	}
 
 	return s.parseOutput(stdout.Bytes())
+}
+
+func filterRelatedResults(results []SearchResult, target ResolvedTarget) []SearchResult {
+	parser := links.NewParser()
+	normalizedAliases := make(map[string]struct{}, len(target.Aliases))
+	for _, alias := range target.Aliases {
+		normalizedAliases[normalizeRelatedValue(alias)] = struct{}{}
+	}
+
+	filtered := make([]SearchResult, 0, len(results))
+	for _, result := range results {
+		parsedLinks := parser.Parse(result.Match, result.Path)
+		for _, link := range parsedLinks {
+			if _, ok := normalizedAliases[normalizeRelatedValue(link.Target)]; ok {
+				filtered = append(filtered, result)
+				break
+			}
+		}
+	}
+
+	return filtered
 }
 
 // parseOutput parses ripgrep's JSON-per-line output into SearchResult slices.

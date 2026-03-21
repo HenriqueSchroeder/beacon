@@ -222,6 +222,26 @@ func TestRipgrepSearcher_SearchRelated_MatchesTitleAlias(t *testing.T) {
 	assert.Equal(t, "Source.md", results[0].Path)
 }
 
+func TestRipgrepSearcher_SearchRelated_MatchesMarkdownExtension(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeRelatedFixture(t, root, "Target Note.md", "# Target Note\n")
+	writeRelatedFixture(t, root, "Source.md", "[[Target Note.md]]\n")
+
+	s, err := NewRipgrepSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.SearchRelated(context.Background(), ResolvedTarget{
+		Path:    "Target Note.md",
+		Aliases: []string{"Target Note"},
+	})
+
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "Source.md", results[0].Path)
+}
+
 func TestRipgrepSearcher_SearchRelated_DoesNotMatchPrefixCollisions(t *testing.T) {
 	requireRipgrep(t)
 
