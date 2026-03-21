@@ -18,6 +18,7 @@ var (
 	searchTags     string
 	searchType     string
 	searchFilename bool
+	searchRelated  bool
 )
 
 func init() {
@@ -25,12 +26,13 @@ func init() {
 	searchCmd.Flags().StringVar(&searchTags, "tags", "", "search by tags (comma-separated)")
 	searchCmd.Flags().StringVar(&searchType, "type", "", "search by note type")
 	searchCmd.Flags().BoolVar(&searchFilename, "filename", false, "search by filename")
+	searchCmd.Flags().BoolVar(&searchRelated, "related", false, "search for notes linking to a target note")
 	rootCmd.AddCommand(searchCmd)
 }
 
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
-	Short: "Search notes by content, tags, or type",
+	Short: "Search notes by content, tags, type, filename, or backlinks",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.LoadFrom(cfgFile)
@@ -48,13 +50,13 @@ var searchCmd = &cobra.Command{
 		if searchFilename {
 			modeCount++
 		}
-		if len(args) > 0 {
+		if searchRelated {
 			modeCount++
 		}
-		if modeCount > 1 && !searchFilename {
-			return fmt.Errorf("only one search mode can be used at a time")
+		if len(args) > 0 && !searchFilename && !searchRelated {
+			modeCount++
 		}
-		if searchFilename && (searchTags != "" || searchType != "") {
+		if modeCount > 1 {
 			return fmt.Errorf("only one search mode can be used at a time")
 		}
 
@@ -91,12 +93,38 @@ var searchCmd = &cobra.Command{
 			if len(args) != 1 {
 				return fmt.Errorf("--filename requires a query argument")
 			}
+
 			v, err := vault.NewFileVault(cfg.VaultPath, cfg.Ignore)
 			if err != nil {
 				return fmt.Errorf("failed to open vault: %w", err)
 			}
 			s := search.NewVaultSearcher(v)
 			results, err = s.SearchByFilename(context.Background(), args[0])
+			if err != nil {
+				return fmt.Errorf("search failed: %w", err)
+			}
+
+		case searchRelated:
+			if len(args) != 1 {
+				return fmt.Errorf("--related requires a note argument")
+			}
+			v, err := vault.NewFileVault(cfg.VaultPath, cfg.Ignore)
+			if err != nil {
+				return fmt.Errorf("failed to open vault: %w", err)
+			}
+
+			vaultSearcher := search.NewVaultSearcher(v)
+			target, err := vaultSearcher.ResolveRelatedTarget(context.Background(), args[0])
+			if err != nil {
+				return fmt.Errorf("search failed: %w", err)
+			}
+
+			ripgrepSearcher, err := search.NewRipgrepSearcher(cfg.VaultPath, cfg.Ignore)
+			if err != nil {
+				return fmt.Errorf("failed to create searcher: %w", err)
+			}
+
+			results, err = ripgrepSearcher.SearchRelated(context.Background(), target)
 			if err != nil {
 				return fmt.Errorf("search failed: %w", err)
 			}
@@ -115,7 +143,7 @@ var searchCmd = &cobra.Command{
 			}
 
 		default:
-			return fmt.Errorf("provide a query, --tags, --type, or --filename")
+			return fmt.Errorf("provide a query, --tags, --type, --filename, or --related")
 		}
 
 		if len(results) == 0 {
