@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -83,6 +84,24 @@ func TestResolveRelatedTarget_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "note target not found")
 }
 
+func TestResolveRelatedTarget_PrefersPathListingBeforeFullNoteParsing(t *testing.T) {
+	s := NewVaultSearcher(relatedPathOnlyVault{
+		paths: []string{"target-note.md"},
+		notes: map[string]vault.Note{
+			"target-note.md": {
+				Path: "target-note.md",
+				Name: "Target Note",
+			},
+		},
+	})
+
+	target, err := s.ResolveRelatedTarget(context.Background(), "target-note")
+
+	require.NoError(t, err)
+	assert.Equal(t, "target-note.md", target.Path)
+	assert.ElementsMatch(t, []string{"target-note", "Target Note"}, target.Aliases)
+}
+
 func newRelatedSearchVault(t *testing.T, notes map[string]string) vault.Vault {
 	t.Helper()
 
@@ -96,4 +115,25 @@ func newRelatedSearchVault(t *testing.T, notes map[string]string) vault.Vault {
 	v, err := vault.NewFileVault(root, nil)
 	require.NoError(t, err)
 	return v
+}
+
+type relatedPathOnlyVault struct {
+	paths []string
+	notes map[string]vault.Note
+}
+
+func (v relatedPathOnlyVault) ListNotes(context.Context) ([]vault.Note, error) {
+	return nil, fmt.Errorf("ListNotes should not be used for path-based related resolution")
+}
+
+func (v relatedPathOnlyVault) GetNote(_ context.Context, path string) (*vault.Note, error) {
+	note, ok := v.notes[path]
+	if !ok {
+		return nil, fmt.Errorf("note not found: %s", path)
+	}
+	return &note, nil
+}
+
+func (v relatedPathOnlyVault) ListNotePaths(context.Context) ([]string, error) {
+	return v.paths, nil
 }

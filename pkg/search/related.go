@@ -19,12 +19,25 @@ type ResolvedTarget struct {
 
 // ResolveRelatedTarget resolves a user-provided note reference to a single note.
 func (s *VaultSearcher) ResolveRelatedTarget(ctx context.Context, query string) (ResolvedTarget, error) {
+	normalizedQuery := normalizeRelatedValue(query)
+	pathMatches, err := s.findPathMatches(ctx, normalizedQuery)
+	if err != nil {
+		return ResolvedTarget{}, err
+	}
+	switch len(pathMatches) {
+	case 1:
+		return s.resolvedTargetFromPath(ctx, pathMatches[0])
+	case 0:
+		// Fall back to full note parsing only when basename/path matching did not resolve.
+	default:
+		return ResolvedTarget{}, fmt.Errorf("ambiguous note target %q: %s", query, strings.Join(pathMatches, ", "))
+	}
+
 	notes, err := s.vault.ListNotes(ctx)
 	if err != nil {
 		return ResolvedTarget{}, fmt.Errorf("search: failed to list notes: %w", err)
 	}
 
-	normalizedQuery := normalizeRelatedValue(query)
 	matches := make(map[string]vault.Note)
 
 	for _, note := range notes {
@@ -55,6 +68,41 @@ func (s *VaultSearcher) ResolveRelatedTarget(ctx context.Context, query string) 
 	sort.Strings(paths)
 
 	return ResolvedTarget{}, fmt.Errorf("ambiguous note target %q: %s", query, strings.Join(paths, ", "))
+}
+
+func (s *VaultSearcher) findPathMatches(ctx context.Context, normalizedQuery string) ([]string, error) {
+	paths, err := s.listNotePaths(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, path := range paths {
+		if normalizeRelatedValue(path) == normalizedQuery {
+			matches = append(matches, path)
+			continue
+		}
+
+		baseWithoutExt := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		if normalizeRelatedValue(baseWithoutExt) == normalizedQuery {
+			matches = append(matches, path)
+		}
+	}
+
+	sort.Strings(matches)
+	return matches, nil
+}
+
+func (s *VaultSearcher) resolvedTargetFromPath(ctx context.Context, path string) (ResolvedTarget, error) {
+	note, err := s.vault.GetNote(ctx, path)
+	if err != nil {
+		return ResolvedTarget{}, fmt.Errorf("search: failed to load note %s: %w", path, err)
+	}
+
+	return ResolvedTarget{
+		Path:    note.Path,
+		Aliases: relatedAliases(*note),
+	}, nil
 }
 
 func relatedCandidates(note vault.Note) []string {
