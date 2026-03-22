@@ -83,5 +83,5 @@ func TestLoadFromFile_DefaultTypePaths(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, cfg.TypePaths)
 	assert.Greater(t, len(cfg.TypePaths), 0, "should have default type_paths")
-	assert.Equal(t, "100 - Diário", cfg.TypePaths["daily"])
+	assert.Equal(t, "Daily", cfg.TypePaths["daily"])
 }
