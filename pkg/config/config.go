@@ -14,6 +14,13 @@ type Config struct {
 	Ignore       []string          `yaml:"ignore"`
 	Validation   ValidationConfig  `yaml:"validation"`
 	TypePaths    map[string]string `yaml:"type_paths"`
+	Daily        DailyConfig       `yaml:"daily"`
+}
+
+type DailyConfig struct {
+	DateFormat string `yaml:"date_format"` // Go reference time format, default: "2006-01-02"
+	Folder     string `yaml:"folder"`      // Overrides type_paths["daily"] if set
+	Template   string `yaml:"template"`    // Template name, default: "daily"
 }
 
 type ValidationConfig struct {
@@ -71,5 +78,14 @@ func applyDefaults(cfg *Config) {
 			"work":      "300 - Trabalho",
 			"personal":  "400 - Pessoal",
 		}
+	}
+	if cfg.Daily.DateFormat == "" {
+		cfg.Daily.DateFormat = "2006-01-02"
+	}
+	if cfg.Daily.Template == "" {
+		cfg.Daily.Template = "daily"
+	}
+	if cfg.Daily.Folder == "" {
+		cfg.Daily.Folder = cfg.TypePaths["daily"]
 	}
 }
