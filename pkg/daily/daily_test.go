@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,6 +113,30 @@ func TestGetOrCreate_YesterdayAndTomorrow(t *testing.T) {
 				t.Errorf("%s: expected filename %s, got %s", tc.name, tc.want, filepath.Base(result.Path))
 			}
 		})
+	}
+}
+
+func TestGetOrCreate_SanitizesDateFormatPathSeparators(t *testing.T) {
+	vaultDir := t.TempDir()
+	loader := templates.NewTemplateLoader(vaultDir, "templates")
+	// date_format with "/" would create subdirectories without sanitization
+	m := NewManager(vaultDir, "Daily", "02/01/2006", "daily", loader, map[string]string{})
+
+	date := time.Date(2026, 3, 22, 0, 0, 0, 0, time.UTC)
+	result, err := m.GetOrCreate(context.Background(), date)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Slashes should be replaced by dashes — no subdirectory traversal
+	base := filepath.Base(result.Path)
+	if base != "22-03-2026.md" {
+		t.Errorf("expected sanitized filename 22-03-2026.md, got %s", base)
+	}
+
+	// Verify the file is inside the vault (no path traversal)
+	if !strings.HasPrefix(filepath.Clean(result.Path), filepath.Clean(vaultDir)) {
+		t.Errorf("path %s escaped vault %s", result.Path, vaultDir)
 	}
 }
 
