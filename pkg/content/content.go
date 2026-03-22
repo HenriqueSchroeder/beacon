@@ -75,26 +75,32 @@ func (m *Manipulator) Prepend(path, text string) error {
 	return atomicWrite(path, []byte(result))
 }
 
-// FindFrontmatterEnd returns the byte offset immediately after the closing ---
-// of a YAML frontmatter block (including its trailing newline).
-// Returns 0 if the file does not start with a frontmatter block.
+// FindFrontmatterEnd returns the byte offset in content immediately after the
+// closing --- of a YAML frontmatter block (including its trailing newline).
+// Returns 0 if the content does not start with a valid frontmatter block.
+// Both LF (\n) and CRLF (\r\n) line endings are supported.
 func FindFrontmatterEnd(content string) int {
-	const delimiter = "---\n"
-
-	if !strings.HasPrefix(content, delimiter) {
+	// Detect line ending style from the opening delimiter
+	var nl string
+	switch {
+	case strings.HasPrefix(content, "---\r\n"):
+		nl = "\r\n"
+	case strings.HasPrefix(content, "---\n"):
+		nl = "\n"
+	default:
 		return 0
 	}
 
-	// Search for the closing delimiter starting after the opening one
-	rest := content[len(delimiter):]
-	idx := strings.Index(rest, "\n---\n")
+	openDelim := "---" + nl
+	closePattern := nl + "---" + nl
+
+	rest := content[len(openDelim):]
+	idx := strings.Index(rest, closePattern)
 	if idx == -1 {
-		// No closing delimiter found — not valid frontmatter
 		return 0
 	}
 
-	// Offset: opening delimiter + content up to \n + "---\n"
-	return len(delimiter) + idx + len("\n---\n")
+	return len(openDelim) + idx + len(closePattern)
 }
 
 // Snippet returns a single-line preview of text, truncated to maxLen characters.
@@ -113,8 +119,15 @@ func Snippet(text string, maxLen int) string {
 }
 
 // atomicWrite writes data to path using a temporary file and rename to avoid
-// partial writes on crash.
+// partial writes on crash. The original file's permissions are preserved.
 func atomicWrite(path string, data []byte) error {
+	// Read original permissions before touching the file
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("content: failed to stat file: %w", err)
+	}
+	perm := info.Mode().Perm()
+
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, ".beacon-tmp-*")
 	if err != nil {
@@ -135,6 +148,10 @@ func atomicWrite(path string, data []byte) error {
 	}
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("content: failed to close temp file: %w", err)
+	}
+
+	if err := os.Chmod(tmpPath, perm); err != nil {
+		return fmt.Errorf("content: failed to set file permissions: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, path); err != nil {
