@@ -1,67 +1,79 @@
-# Beacon
+<div align="center">
 
-A lightweight, fast CLI for managing Obsidian vaults on headless servers, with performance as a first-class concern for large vaults.
+# 🔦 Beacon
+
+**Give your AI agent hands inside your Obsidian vault.**
+
+A fast, single-binary CLI that lets AI tools like Claude Code, Codex, and OpenClaw\
+search, create, and validate notes — on headless servers, with zero GUI.
+
+[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev)
+[![Release](https://img.shields.io/github/v/release/HenriqueSchroeder/beacon?style=flat&color=blue)](https://github.com/HenriqueSchroeder/beacon/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat)](LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/HenriqueSchroeder/beacon/release.yml?label=tests&style=flat)](https://github.com/HenriqueSchroeder/beacon/actions)
+
+</div>
+
+---
 
 ## Why Beacon?
 
-The official Obsidian CLI requires the Obsidian app (Electron-based) to be installed. This makes it impossible to use on headless servers (Linux without GUI).
+AI coding agents run on headless servers — no GUI, no Electron, no Obsidian app. But your knowledge lives in Obsidian. Beacon bridges that gap.
 
-Beacon is a standalone CLI that works directly with vault files — no Electron, no GUI needed.
-
-The project optimizes for real Obsidian vaults that can grow large over time. New features should preserve that bias toward predictable, efficient behavior.
-
-Perfect for:
-- Server-side vault automation
-- CI/CD pipelines
-- Docker containers
-- Scheduled tasks & cron jobs
-
-## Installation
-
-### Quick Install (Linux/macOS)
+Instead of giving your agent raw file access and hoping it figures out wiki-links, frontmatter, and vault structure, you give it a **purpose-built CLI** that already understands Obsidian.
 
 ```bash
-curl -sL https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.sh | sh
+# Your AI agent can search your vault in milliseconds (powered by ripgrep)
+beacon search "meeting action items"
+
+# Find every note linking to a target — understand your knowledge graph
+beacon search --related "Project Atlas"
+
+# Create structured notes from templates
+beacon create "Sprint Review" --type=meetings --tags="sprint,team"
+
+# Validate wiki-links before broken references pile up
+beacon validate --strict
 ```
 
-### Quick Install (Windows PowerShell)
+### Built for agents, useful for humans
 
-```powershell
+Beacon was born from a real setup: an [OpenClaw](https://github.com/HenriqueSchroeder/openclaw) agent running on a headless Linux server, managing an Obsidian vault with thousands of notes. No display server, no Electron — just a single Go binary and `--json` output that agents parse natively.
+
+It works just as well when **you** run it from a terminal, a cron job, or a CI pipeline.
+
+---
+
+## Install
+
+**One command:**
+
+```bash
+# Linux / macOS
+curl -sL https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.sh | sh
+
+# Windows (PowerShell)
 irm https://raw.githubusercontent.com/HenriqueSchroeder/beacon/main/install.ps1 | iex
 ```
 
-Both scripts detect your architecture automatically and install the latest version. To update, run the same command again.
+<details>
+<summary><b>Other methods</b></summary>
 
-### From Source
-
-```bash
-git clone https://github.com/HenriqueSchroeder/beacon.git
-cd beacon
-make build
-./bin/beacon version
-```
-
-### From Releases
+#### From releases
 
 Download the latest binary for your platform from [GitHub Releases](https://github.com/HenriqueSchroeder/beacon/releases/latest).
 
-#### Linux (amd64)
-
 ```bash
+# Linux (amd64)
 curl -sL https://github.com/HenriqueSchroeder/beacon/releases/latest/download/beacon_linux_amd64.tar.gz | tar xz
 sudo mv beacon /usr/local/bin/
-```
 
-#### macOS (Apple Silicon)
-
-```bash
+# macOS (Apple Silicon)
 curl -sL https://github.com/HenriqueSchroeder/beacon/releases/latest/download/beacon_darwin_arm64.tar.gz | tar xz
 sudo mv beacon /usr/local/bin/
+
+# Windows — download beacon_windows_amd64.zip from Releases and add to PATH
 ```
-
-#### Windows
-
-Download `beacon_windows_amd64.zip` from [Releases](https://github.com/HenriqueSchroeder/beacon/releases/latest) and add to your PATH.
 
 #### Via GitHub CLI
 
@@ -71,126 +83,69 @@ tar xzf beacon_linux_amd64.tar.gz
 sudo mv beacon /usr/local/bin/
 ```
 
-## Quick Start
+#### From source
 
 ```bash
-# Set your vault path
-export BEACON_VAULT_PATH="/path/to/your/obsidian-vault"
-
-# Or use a config file
-beacon --config .beacon.yml list
+git clone https://github.com/HenriqueSchroeder/beacon.git
+cd beacon && make build
+./bin/beacon version
 ```
 
-### List notes
+</details>
+
+---
+
+## What Can It Do?
+
+### Search — five modes, one command
+
+| Mode | Command | What it finds |
+|------|---------|---------------|
+| **Content** | `beacon search "TODO"` | Full-text search across all notes (via ripgrep) |
+| **Tags** | `beacon search --tags "project,idea"` | Notes matching specific frontmatter tags |
+| **Type** | `beacon search --type "daily"` | Notes filtered by frontmatter type |
+| **Filename** | `beacon search --filename "Project Plan"` | Quick lookup by note name |
+| **Backlinks** | `beacon search --related "Calian"` | Every note that wiki-links to a target |
+
+Add `--json` to any search for machine-readable output — pipe it to `jq`, feed it to scripts.
+
+### Create — templated notes in one line
 
 ```bash
-beacon list
+beacon create "Daily Standup" --type=daily
+beacon create "Bug Report" --template=bug --tags="bug,critical"
+beacon create "Q2 OKRs" --type=projects --path="Active/Q2 OKRs.md"
 ```
 
-### Search by content (requires ripgrep)
+Notes land in the right directory based on `type_paths` config. Templates use Go's `text/template` syntax with access to title, tags, date, and type.
+
+### Validate — find broken links before they rot
 
 ```bash
-beacon search "golang tips"
-beacon search "TODO" --json
+beacon validate                          # scan entire vault
+beacon validate --file "Notes/Index.md"  # check a single file
+beacon validate --strict                 # exit 1 on any broken link (CI-friendly)
+beacon validate --json                   # structured output for tooling
 ```
 
-### Search by tags
+The validator parses `[[wiki-links]]`, resolves them against your vault, and suggests fixes using fuzzy matching when a link is close but not exact.
 
-```bash
-beacon search --tags "project,idea"
-```
-
-### Search by note type
-
-```bash
-beacon search --type "daily"
-```
-
-### Search by filename
-
-```bash
-beacon search --filename "Project Plan"
-```
-
-### Search backlinks to a note
-
-```bash
-beacon search --related "Calian"
-```
-
-### Create a note from template
-
-```bash
-beacon create "My Note" --type=daily
-beacon create "Meeting Notes" --tags="work,urgent" --template=meeting
-beacon create "Project X" --type=projects --path="Active/Project X.md"
-```
-
-### Validate wiki links
-
-```bash
-beacon validate
-beacon validate --file "Notes/My Note.md"
-beacon validate --json
-beacon validate --strict   # exit 1 if any broken link found
-```
-
-## Commands
-
-```
-beacon list                    List all notes in the vault
-beacon search <query>          Search notes by content (uses ripgrep)
-beacon search --filename <q>   Search notes by filename
-beacon search --tags <t1,t2>   Search notes by tags
-beacon search --type <type>    Search notes by frontmatter type
-beacon search --related <note> Find notes linking to a target note
-beacon create <title>          Create a new note from a template
-beacon validate                Validate wiki links in vault notes
-beacon version                 Show version info
-```
-
-### Search flags
-
-| Flag     | Description                        |
-|----------|------------------------------------|
-| `--json` | Output results as JSON             |
-| `--filename` | Search by filename basename; query is normalized like `create` |
-| `--tags` | Filter by tags (comma-separated)   |
-| `--type` | Filter by frontmatter type         |
-| `--related` | Find wiki-link backlinks to a note |
-
-### Create flags
-
-| Flag          | Description                                      |
-|---------------|--------------------------------------------------|
-| `--type`      | Note type (determines output directory)          |
-| `--template`  | Template name to use (default: default)          |
-| `--tags`      | Tags to include (comma-separated)                |
-| `--path`      | Custom output path (relative to vault root)      |
-| `--overwrite` | Overwrite existing file                          |
-
-### Validate flags
-
-| Flag          | Description                                      |
-|---------------|--------------------------------------------------|
-| `--json`      | Output results as JSON                           |
-| `--strict`    | Exit with error if any invalid links found       |
-| `--file`      | Validate a specific file only                    |
+---
 
 ## Configuration
 
-Create `.beacon.yml`:
-
 ```yaml
+# .beacon.yml
 vault_path: /home/user/obsidian-vault
 editor: nvim
-templates_dir: "700 - Recursos/Templates"
+templates_dir: "Templates"
 ignore:
   - ".obsidian"
+  - ".trash"
 type_paths:
-  daily: "100 - Diário"
-  projects: "200 - Projetos"
-  work: "300 - Trabalho"
+  daily: "Journal/Daily"
+  projects: "Projects"
+  meetings: "Work/Meetings"
 validation:
   fuzzy_threshold: 0.8
   strict_mode: false
@@ -198,90 +153,125 @@ validation:
     - "^http"
 ```
 
-Or set the vault path via environment variable:
+Or just set the vault path:
 
 ```bash
 export BEACON_VAULT_PATH="/path/to/vault"
 ```
 
-### Config options
+<details>
+<summary><b>All config options</b></summary>
 
-| Option                          | Default                          | Description                                  |
-|---------------------------------|----------------------------------|----------------------------------------------|
-| `vault_path`                    | (required)                       | Path to Obsidian vault                       |
-| `editor`                        | `vim`                            | Default editor                               |
-| `ignore`                        | `.obsidian`                      | Directories to ignore                        |
-| `templates_dir`                 | `700 - Recursos/Templates`       | Directory with note templates (in vault)     |
-| `type_paths`                    | see defaults                     | Map of note type → subdirectory              |
-| `validation.fuzzy_threshold`    | `0.8`                            | Similarity threshold for link suggestions    |
-| `validation.strict_mode`        | `false`                          | Fail if any invalid links found              |
-| `validation.ignore_patterns`    | `[]`                             | Regex patterns for links to skip             |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `vault_path` | *(required)* | Path to Obsidian vault |
+| `editor` | `vim` | Default editor |
+| `ignore` | `.obsidian` | Directories to skip |
+| `templates_dir` | `700 - Recursos/Templates` | Template directory (relative to vault) |
+| `type_paths` | see defaults | Map of note type → subdirectory |
+| `validation.fuzzy_threshold` | `0.8` | Similarity threshold for link suggestions |
+| `validation.strict_mode` | `false` | Fail on any invalid link |
+| `validation.ignore_patterns` | `[]` | Regex patterns for links to ignore |
 
-## Dependencies
+</details>
 
-- **Go 1.21+** for building
-- **ripgrep** (`rg`) for content search
+---
+
+## Use Cases
+
+**AI agents on headless servers**\
+Give Claude Code, Codex, or OpenClaw structured access to your vault — search, create, and validate notes without a GUI.
+
+**Server-side automation**\
+Cron job that creates daily notes, validates links weekly, or searches for stale TODOs.
+
+**CI/CD pipelines**\
+Run `beacon validate --strict` in CI to catch broken links before merging docs.
+
+**Docker containers**\
+Single static binary — copy it in, point it at a volume-mounted vault, done.
+
+**Scripts and tooling**\
+`--json` output on search and validate makes Beacon a building block for your own workflows.
+
+---
+
+## Requirements
+
+- **ripgrep** (`rg`) — for content search only. All other commands work without it.
+
+That's it. Beacon is a single static binary with zero runtime dependencies.
+
+---
 
 ## Development
 
 ```bash
-make build      # Compile binary
-make test       # Run tests
-make coverage   # Test coverage report
-make lint       # Run linter (requires golangci-lint)
-make clean      # Remove artifacts
-make install    # Install locally
+make build      # compile binary
+make test       # run tests
+make coverage   # coverage report
+make lint       # golangci-lint
+make clean      # remove artifacts
+make install    # install to $GOPATH/bin
 ```
 
-### Project Structure
+<details>
+<summary><b>Project structure</b></summary>
 
 ```
 beacon/
-├── cmd/beacon/        # CLI entry point (Cobra commands)
-│   ├── main.go        # Root command & version
-│   ├── list.go        # List command
-│   ├── search.go      # Search command
-│   ├── create.go      # Create command
-│   └── validate.go    # Validate command
+├── cmd/beacon/        # CLI commands (Cobra)
+│   ├── main.go        # root command & version
+│   ├── list.go        # list notes
+│   ├── search.go      # multi-mode search
+│   ├── create.go      # note creation
+│   └── validate.go    # link validation
 ├── pkg/
-│   ├── config/        # YAML configuration loading
-│   ├── vault/         # Vault interface & FileVault implementation
-│   ├── search/        # Search: ripgrep + vault-based searchers
-│   ├── create/        # Note creation logic
-│   ├── templates/     # Template loading and rendering
-│   ├── validate/      # Link validation with fuzzy matching
-│   └── links/         # Wiki-style link parser
-└── testdata/fixtures/ # Test fixtures
+│   ├── config/        # YAML config loading
+│   ├── vault/         # vault interface & file implementation
+│   ├── search/        # ripgrep + vault-based searchers
+│   ├── create/        # note creation logic
+│   ├── templates/     # template loading & rendering
+│   ├── validate/      # link validation with fuzzy matching
+│   └── links/         # wiki-style link parser
+└── testdata/fixtures/ # test fixtures
 ```
 
-## Roadmap
-
-- [ ] Git integration & auto-sync
-- [x] Note creation with templates
-- [x] Link validation (broken backlinks)
-- [ ] Inbox workflows
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/your-feature`)
-3. Commit changes (`git commit -m 'feat: add feature'`)
-4. Push to branch (`git push origin feat/your-feature`)
-5. Open a Pull Request
-
-All changes intended for `main` should go through a Pull Request. Do not push or merge directly into `main`.
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
-## Author
-
-[Henrique Schroeder](https://github.com/HenriqueSchroeder)
+</details>
 
 ---
 
-**Found a bug?** [Open an issue](https://github.com/HenriqueSchroeder/beacon/issues)
+## Roadmap
 
-**Have an idea?** [Discussions](https://github.com/HenriqueSchroeder/beacon/discussions)
+- [x] Multi-mode search (content, tags, type, filename, backlinks)
+- [x] Note creation with templates
+- [x] Wiki-link validation with fuzzy suggestions
+- [ ] Git integration & auto-sync
+- [ ] Inbox processing workflows
+- [ ] Interactive TUI mode
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Write tests for your changes
+4. Commit with a descriptive message (`git commit -m 'feat: add feature'`)
+5. Open a Pull Request against `main`
+
+---
+
+## License
+
+[MIT](LICENSE) — Henrique Schroeder
+
+---
+
+<div align="center">
+
+**[Install](https://github.com/HenriqueSchroeder/beacon/releases/latest)** · **[Report Bug](https://github.com/HenriqueSchroeder/beacon/issues)** · **[Request Feature](https://github.com/HenriqueSchroeder/beacon/discussions)**
+
+</div>
