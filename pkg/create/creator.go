@@ -106,14 +106,23 @@ func (c *Creator) CreateNote(ctx context.Context, opts CreateNoteOptions) (strin
 }
 
 // ResolvePath determines the output file path based on options.
+// The returned path is always within the vault directory.
 func (c *Creator) ResolvePath(opts CreateNoteOptions) (string, error) {
 	// If custom path provided, use it
 	if opts.CustomPath != "" {
-		// Make path absolute relative to vault
+		var resolved string
 		if !filepath.IsAbs(opts.CustomPath) {
-			return filepath.Join(c.vaultPath, opts.CustomPath), nil
+			resolved = filepath.Join(c.vaultPath, opts.CustomPath)
+		} else {
+			resolved = filepath.Clean(opts.CustomPath)
 		}
-		return opts.CustomPath, nil
+
+		// Ensure the resolved path stays within the vault
+		vaultClean := filepath.Clean(c.vaultPath)
+		if !strings.HasPrefix(resolved+string(filepath.Separator), vaultClean+string(filepath.Separator)) {
+			return "", fmt.Errorf("path %q is outside vault directory", opts.CustomPath)
+		}
+		return resolved, nil
 	}
 
 	// Otherwise use type-based path

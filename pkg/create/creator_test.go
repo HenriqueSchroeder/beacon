@@ -87,6 +87,25 @@ func TestResolvePath(t *testing.T) {
 			},
 			shouldFail: true,
 		},
+		{
+			name: "absolute path inside vault",
+			opts: CreateNoteOptions{
+				Title:      "Test",
+				CustomPath: tmpDir + "/subdir/note.md",
+			},
+			shouldFail: false,
+			check: func(path string) bool {
+				return strings.HasSuffix(path, "note.md")
+			},
+		},
+		{
+			name: "absolute path outside vault",
+			opts: CreateNoteOptions{
+				Title:      "Test",
+				CustomPath: "/etc/passwd",
+			},
+			shouldFail: true,
+		},
 	}
 
 	for _, tt := range tests {

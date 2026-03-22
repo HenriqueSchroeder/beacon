@@ -18,10 +18,27 @@ func TestFindFrontmatterEnd_NoFrontmatter(t *testing.T) {
 
 func TestFindFrontmatterEnd_WithFrontmatter(t *testing.T) {
 	input := "---\ntitle: Test\ndate: 2026-01-01\n---\n\n# Body"
+	// Exact expected offset: len("---\n") + len("title: Test\ndate: 2026-01-01") + len("\n---\n")
+	expected := len("---\ntitle: Test\ndate: 2026-01-01\n---\n")
 	end := FindFrontmatterEnd(input)
+	if end != expected {
+		t.Errorf("expected offset %d, got %d", expected, end)
+	}
 	rest := input[end:]
 	if !strings.HasPrefix(rest, "\n# Body") {
-		t.Errorf("expected rest to start with body, got: %q", rest)
+		t.Errorf("expected rest to start with '\\n# Body', got: %q", rest)
+	}
+}
+
+func TestFindFrontmatterEnd_CRLF(t *testing.T) {
+	input := "---\r\ntitle: Test\r\ndate: 2026-01-01\r\n---\r\n\r\n# Body"
+	end := FindFrontmatterEnd(input)
+	if end == 0 {
+		t.Fatal("expected non-zero offset for CRLF frontmatter")
+	}
+	rest := input[end:]
+	if !strings.HasPrefix(rest, "\r\n# Body") {
+		t.Errorf("expected rest to start with '\\r\\n# Body', got: %q", rest)
 	}
 }
 
