@@ -109,6 +109,16 @@ cd beacon && make build
 
 Add `--json` to any search for machine-readable output — pipe it to `jq`, feed it to scripts.
 
+### Daily Notes — one command for today's note
+
+```bash
+beacon daily            # create or open today's daily note
+beacon daily --yesterday
+beacon daily --tomorrow
+```
+
+Idempotent — running it twice prints "found" instead of "created". Configurable date format, folder, and template via `.beacon.yml`.
+
 ### Create — templated notes in one line
 
 ```bash
@@ -151,6 +161,10 @@ validation:
   strict_mode: false
   ignore_patterns:
     - "^http"
+daily:
+  date_format: "2006-01-02"   # Go reference time format
+  folder: "Daily"             # vault-relative path (defaults to type_paths["daily"])
+  template: "daily"           # template name to use when creating
 ```
 
 Or just set the vault path:
@@ -172,6 +186,9 @@ export BEACON_VAULT_PATH="/path/to/vault"
 | `validation.fuzzy_threshold` | `0.8` | Similarity threshold for link suggestions |
 | `validation.strict_mode` | `false` | Fail on any invalid link |
 | `validation.ignore_patterns` | `[]` | Regex patterns for links to ignore |
+| `daily.date_format` | `2006-01-02` | Go reference time format for daily note filenames |
+| `daily.folder` | `Daily` | Vault-relative folder for daily notes |
+| `daily.template` | `daily` | Template name to use when creating a daily note |
 
 </details>
 
@@ -225,14 +242,18 @@ beacon/
 │   ├── list.go        # list notes
 │   ├── search.go      # multi-mode search
 │   ├── create.go      # note creation
+│   ├── daily.go       # daily notes
+│   ├── move.go        # move & rename with backlink updates
 │   └── validate.go    # link validation
 ├── pkg/
 │   ├── config/        # YAML config loading
 │   ├── vault/         # vault interface & file implementation
 │   ├── search/        # ripgrep + vault-based searchers
 │   ├── create/        # note creation logic
+│   ├── daily/         # daily note find-or-create logic
 │   ├── templates/     # template loading & rendering
 │   ├── validate/      # link validation with fuzzy matching
+│   ├── move/          # note mover with backlink updates
 │   └── links/         # wiki-style link parser
 └── testdata/fixtures/ # test fixtures
 ```
@@ -246,8 +267,11 @@ beacon/
 - [x] Multi-mode search (content, tags, type, filename, backlinks)
 - [x] Note creation with templates
 - [x] Wiki-link validation with fuzzy suggestions
+- [x] Daily notes with `--yesterday`/`--tomorrow`
+- [x] Move & rename with automatic backlink updates
+- [ ] Content manipulation (append/prepend)
+- [ ] Frontmatter/property management
 - [ ] Git integration & auto-sync
-- [ ] Inbox processing workflows
 - [ ] Interactive TUI mode
 
 ---
