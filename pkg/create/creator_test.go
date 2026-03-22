@@ -29,7 +29,7 @@ func TestResolvePathUsesSharedFilenameSanitization(t *testing.T) {
 	loader := templates.NewTemplateLoader(tmpDir, "templates")
 	creator := NewCreator(tmpDir, loader, map[string]string{})
 
-	path, err := creator.resolvePath(CreateNoteOptions{Title: "Meeting: Notes"})
+	path, err := creator.ResolvePath(CreateNoteOptions{Title: "Meeting: Notes"})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -91,7 +91,7 @@ func TestResolvePath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			path, err := creator.resolvePath(tt.opts)
+			path, err := creator.ResolvePath(tt.opts)
 			if tt.shouldFail && err == nil {
 				t.Errorf("expected error, got nil")
 			}
