@@ -32,6 +32,8 @@ build/
 
 # Plans
 docs/plans/
+docs/tasks/
+ROADMAP.md
 
 # Claude plugins
 .claude-octopus/
