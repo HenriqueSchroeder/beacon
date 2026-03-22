@@ -88,4 +88,8 @@ func applyDefaults(cfg *Config) {
 	if cfg.Daily.Folder == "" {
 		cfg.Daily.Folder = cfg.TypePaths["daily"]
 	}
+	// Fallback to default if type_paths was set without a "daily" key
+	if cfg.Daily.Folder == "" {
+		cfg.Daily.Folder = "100 - Diário"
+	}
 }
