@@ -73,10 +73,10 @@ func applyDefaults(cfg *Config) {
 	if cfg.TypePaths == nil {
 		cfg.TypePaths = map[string]string{
 			"daily":     "Daily",
-			"projects":  "200 - Projetos",
-			"resources": "700 - Recursos",
-			"work":      "300 - Trabalho",
-			"personal":  "400 - Pessoal",
+			"projects":  "Projects",
+			"resources": "Resources",
+			"work":      "Work",
+			"personal":  "Personal",
 		}
 	}
 	if cfg.Daily.DateFormat == "" {

@@ -63,18 +63,18 @@ func TestLoadFromFile_WithTypePaths(t *testing.T) {
 	path := filepath.Join(tmp, "config.yml")
 	content := `vault_path: /tmp/vault
 type_paths:
-  daily: 100 - Diário
-  projects: 200 - Projetos
-  work: 300 - Trabalho`
+  daily: Daily
+  projects: Projects
+  work: Work`
 	os.WriteFile(path, []byte(content), 0644)
 
 	cfg, err := LoadFrom(path)
 
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(cfg.TypePaths))
-	assert.Equal(t, "100 - Diário", cfg.TypePaths["daily"])
-	assert.Equal(t, "200 - Projetos", cfg.TypePaths["projects"])
-	assert.Equal(t, "300 - Trabalho", cfg.TypePaths["work"])
+	assert.Equal(t, "Daily", cfg.TypePaths["daily"])
+	assert.Equal(t, "Projects", cfg.TypePaths["projects"])
+	assert.Equal(t, "Work", cfg.TypePaths["work"])
 }
 
 func TestLoadFromFile_DefaultTypePaths(t *testing.T) {
