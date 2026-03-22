@@ -16,6 +16,7 @@ import (
 var (
 	validateJSON     bool
 	validateFix      bool
+	validateFixAll   bool
 	validateStrict   bool
 	validateUseCache bool
 	validateFile     string
@@ -23,7 +24,8 @@ var (
 
 func init() {
 	validateCmd.Flags().BoolVar(&validateJSON, "json", false, "output results as JSON")
-	validateCmd.Flags().BoolVar(&validateFix, "fix", false, "attempt to fix broken links (WIP)")
+	validateCmd.Flags().BoolVar(&validateFix, "fix", false, "interactively fix broken links with suggestions")
+	validateCmd.Flags().BoolVar(&validateFixAll, "fix-all", false, "automatically fix all broken links without prompting")
 	validateCmd.Flags().BoolVar(&validateStrict, "strict", false, "fail if any invalid links found")
 	validateCmd.Flags().BoolVar(&validateUseCache, "use-cache", false, "use validation cache")
 	validateCmd.Flags().StringVar(&validateFile, "file", "", "validate specific file only")
@@ -35,10 +37,6 @@ var validateCmd = &cobra.Command{
 	Short: "Validate wiki links in vault notes",
 	Long:  "Validate wiki links in vault notes. Checks if [[links]] point to valid notes and headings.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Warn if unimplemented flags are used
-		if validateFix {
-			fmt.Fprintln(os.Stderr, "aviso: --fix ainda não implementado")
-		}
 		if validateUseCache {
 			fmt.Fprintln(os.Stderr, "aviso: --use-cache ainda não implementado")
 		}
@@ -79,6 +77,11 @@ var validateCmd = &cobra.Command{
 		sort.Slice(results, func(i, j int) bool {
 			return results[i].FilePath < results[j].FilePath
 		})
+
+		// Handle --fix / --fix-all mode
+		if validateFix || validateFixAll {
+			return runFix(results, cfg.VaultPath)
+		}
 
 		if validateJSON {
 			return outputJSON(results)
@@ -153,6 +156,40 @@ func outputJSON(results []validate.DocumentValidation) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(jsonResults)
+}
+
+func runFix(results []validate.DocumentValidation, vaultPath string) error {
+	fixes := validate.CollectFixes(results)
+
+	if len(fixes) == 0 {
+		fmt.Println("No fixable links found (no suggestions available).")
+		return nil
+	}
+
+	fmt.Printf("Found %d broken links with suggestions.\n", len(fixes))
+
+	var prompter validate.Prompter
+	if validateFixAll {
+		prompter = validate.NewAutoPrompter(os.Stdout)
+	} else {
+		prompter = validate.NewInteractivePrompter(os.Stdin, os.Stdout)
+	}
+
+	fixer := validate.NewFixer(vaultPath, prompter)
+	summary := fixer.ApplyFixes(fixes)
+
+	fmt.Printf("\nSummary: %d fixed, %d skipped", summary.Applied, summary.Skipped)
+	if len(summary.Errors) > 0 {
+		fmt.Printf(", %d errors", len(summary.Errors))
+		for _, err := range summary.Errors {
+			fmt.Fprintf(os.Stderr, "\n  error: %s", err)
+		}
+		fmt.Println()
+		return fmt.Errorf("fix completed with %d error(s)", len(summary.Errors))
+	}
+	fmt.Println()
+
+	return nil
 }
 
 func outputText(results []validate.DocumentValidation) {
