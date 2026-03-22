@@ -13,10 +13,11 @@ import (
 
 // ValidationResult represents the result of validating a link
 type ValidationResult struct {
-	Link       links.Link
-	Valid      bool
-	Reason     string // Why the link is invalid (empty if valid)
-	Suggestion string // Suggested fix (if available)
+	Link            links.Link
+	Valid           bool
+	Reason          string // Why the link is invalid (empty if valid)
+	Suggestion      string // Suggested fix hint (if available)
+	SuggestedTarget string // Raw suggested target name with original casing
 }
 
 // DocumentValidation contains validation results for a document
@@ -30,7 +31,8 @@ type DocumentValidation struct {
 // Validator validates wiki links in the vault
 type Validator struct {
 	vault          vault.Vault
-	noteIndex      map[string]bool      // Map of valid note paths
+	noteIndex      map[string]bool      // Map of valid note paths (lowercase)
+	noteNames      map[string]string    // Map of lowercase name to original-case stem
 	headingIndex   map[string][]string  // Map of note paths to headings
 	cache          map[string]*DocumentValidation
 	cacheMutex     sync.RWMutex
@@ -47,6 +49,7 @@ func NewValidator(vault vault.Vault, maxWorkers int) *Validator {
 	return &Validator{
 		vault:          vault,
 		noteIndex:      make(map[string]bool),
+		noteNames:      make(map[string]string),
 		headingIndex:   make(map[string][]string),
 		cache:          make(map[string]*DocumentValidation),
 		parser:         links.NewParser(),
@@ -66,7 +69,12 @@ func (v *Validator) BuildIndex(ctx context.Context) error {
 		// Index note by both full path and filename
 		v.noteIndex[strings.ToLower(note.Path)] = true
 		v.noteIndex[strings.ToLower(filepath.Base(note.Path))] = true
-		v.noteIndex[strings.ToLower(strings.TrimSuffix(filepath.Base(note.Path), ".md"))] = true
+		stem := strings.TrimSuffix(filepath.Base(note.Path), ".md")
+		lowerStem := strings.ToLower(stem)
+		v.noteIndex[lowerStem] = true
+
+		// Store original-case name for fix suggestions
+		v.noteNames[lowerStem] = stem
 
 		// Extract headings from content
 		headings := extractHeadings(note.Content)
@@ -184,6 +192,7 @@ func (v *Validator) validateLink(link links.Link) ValidationResult {
 		// Try to find a suggestion via fuzzy matching
 		suggestion := v.findFuzzySuggestion(link.Target)
 		if suggestion != "" {
+			result.SuggestedTarget = suggestion
 			result.Suggestion = fmt.Sprintf("Did you mean '%s'?", suggestion)
 		}
 		return result
@@ -207,16 +216,18 @@ func (v *Validator) validateLink(link links.Link) ValidationResult {
 	return result
 }
 
-// findFuzzySuggestion tries to find a similar note name using fuzzy matching
+// findFuzzySuggestion tries to find a similar note name using fuzzy matching.
+// Iterates over noteNames (stems only) to avoid path/basename pollution.
 func (v *Validator) findFuzzySuggestion(target string) string {
 	bestMatch := ""
 	bestScore := 0.0
+	lowerTarget := strings.ToLower(target)
 
-	for notePath := range v.noteIndex {
-		score := levenshteinSimilarity(strings.ToLower(target), strings.ToLower(notePath))
+	for lowerStem, originalStem := range v.noteNames {
+		score := levenshteinSimilarity(lowerTarget, lowerStem)
 		if score > v.fuzzyThreshold && score > bestScore {
 			bestScore = score
-			bestMatch = notePath
+			bestMatch = originalStem
 		}
 	}
 
