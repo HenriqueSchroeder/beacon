@@ -72,7 +72,7 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.TypePaths == nil {
 		cfg.TypePaths = map[string]string{
-			"daily":     "100 - Diário",
+			"daily":     "Daily",
 			"projects":  "200 - Projetos",
 			"resources": "700 - Recursos",
 			"work":      "300 - Trabalho",
@@ -90,6 +90,6 @@ func applyDefaults(cfg *Config) {
 	}
 	// Fallback to default if type_paths was set without a "daily" key
 	if cfg.Daily.Folder == "" {
-		cfg.Daily.Folder = "100 - Diário"
+		cfg.Daily.Folder = "Daily"
 	}
 }
