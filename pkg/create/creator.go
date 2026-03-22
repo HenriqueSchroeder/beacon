@@ -64,7 +64,7 @@ func (c *Creator) CreateNote(ctx context.Context, opts CreateNoteOptions) (strin
 	}
 
 	// Determine output path
-	outputPath, err := c.resolvePath(opts)
+	outputPath, err := c.ResolvePath(opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve output path: %w", err)
 	}
@@ -105,8 +105,8 @@ func (c *Creator) CreateNote(ctx context.Context, opts CreateNoteOptions) (strin
 	return outputPath, nil
 }
 
-// resolvePath determines the output file path based on options
-func (c *Creator) resolvePath(opts CreateNoteOptions) (string, error) {
+// ResolvePath determines the output file path based on options.
+func (c *Creator) ResolvePath(opts CreateNoteOptions) (string, error) {
 	// If custom path provided, use it
 	if opts.CustomPath != "" {
 		// Make path absolute relative to vault
