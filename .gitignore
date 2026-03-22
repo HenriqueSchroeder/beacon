@@ -32,3 +32,6 @@ build/
 
 # Plans
 docs/plans/
+
+# Claude plugins
+.claude-octopus/
