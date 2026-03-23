@@ -82,9 +82,10 @@ func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 			args = append(args, "--glob", fmt.Sprintf("!%s", glob))
 		}
 	}
-	args = append(args, "-e", pendingTaskPattern, s.vaultPath)
+	args = append(args, "-e", pendingTaskPattern, ".")
 
 	cmd := exec.CommandContext(ctx, s.rgPath, args...)
+	cmd.Dir = s.vaultPath
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -121,8 +122,8 @@ func ignoreGlobs(pattern string) []string {
 
 	globs := []string{pattern}
 	if strings.Contains(pattern, "/") {
-		globs = append(globs, pattern+"/**", "**/"+pattern, "**/"+pattern+"/**")
-		return globs
+		globs = append(globs, pattern+"/**")
+		return dedupeGlobs(globs)
 	}
 
 	globs = append(globs, "**/"+pattern, pattern+"/**", "**/"+pattern+"/**")
@@ -140,6 +141,12 @@ func dedupeGlobs(globs []string) []string {
 		result = append(result, glob)
 	}
 	return result
+}
+
+func normalizeRipgrepPath(path string) string {
+	path = filepath.ToSlash(path)
+	path = strings.TrimPrefix(path, "./")
+	return path
 }
 
 func (s *Searcher) parseOutput(data []byte) ([]Task, error) {
@@ -168,13 +175,8 @@ func (s *Searcher) parseOutput(data []byte) ([]Task, error) {
 			continue
 		}
 
-		relPath, err := filepath.Rel(s.vaultPath, match.Path.Text)
-		if err != nil {
-			relPath = match.Path.Text
-		}
-
 		results = append(results, Task{
-			Path: relPath,
+			Path: normalizeRipgrepPath(match.Path.Text),
 			Line: match.LineNumber,
 			Text: extractTaskText(match.Lines.Text),
 		})

@@ -93,6 +93,23 @@ func TestSearcher_ListPendingTasks_RespectsNestedPathIgnorePrefixes(t *testing.T
 	assert.Equal(t, "visible", results[0].Text)
 }
 
+func TestSearcher_ListPendingTasks_KeepsSlashIgnorePatternsAnchoredToVaultRoot(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("notes", "template.md"), "- [ ] hidden\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "notes", "template.md"), "- [ ] still visible\n")
+
+	s, err := NewSearcher(root, []string{filepath.Join("notes", "template.md")})
+	require.NoError(t, err)
+
+	results, err := s.ListPending(context.Background())
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "notes", "template.md"), results[0].Path)
+	assert.Equal(t, "still visible", results[0].Text)
+}
+
 func TestSearcher_ListPendingTasks_ReturnsLineNumbersAndRelativePaths(t *testing.T) {
 	requireRipgrep(t)
 
