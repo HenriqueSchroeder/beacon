@@ -150,6 +150,16 @@ beacon show "Roadmap" --no-frontmatter
 
 `beacon show` prints the note content without extra CLI framing, so it stays pipe-friendly. The first slice supports lookup by relative path, basename, optional `.md` suffix, and note title. Use `--no-frontmatter` to hide the YAML block and print only the markdown body.
 
+### Tasks — list pending checkboxes across the vault
+
+```bash
+beacon tasks
+# Inbox.md:3 follow up with design
+# Projects/Roadmap.md:12 ship CLI tasks command
+```
+
+`beacon tasks` scans markdown files with ripgrep and prints each unchecked `- [ ]` item as `path:line text`. This first slice is intentionally read-only: filters, JSON output, and `tasks complete` remain follow-up work.
+
 ### Validate — find broken links before they rot
 
 ```bash
