@@ -76,6 +76,23 @@ func TestSearcher_ListPendingTasks_RespectsIgnorePatterns(t *testing.T) {
 	assert.Equal(t, "visible", results[0].Text)
 }
 
+func TestSearcher_ListPendingTasks_RespectsNestedPathIgnorePrefixes(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("archive", "projects", "Skip.md"), "- [ ] hidden\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "Keep.md"), "- [ ] visible\n")
+
+	s, err := NewSearcher(root, []string{filepath.Join("archive", "projects")})
+	require.NoError(t, err)
+
+	results, err := s.ListPending(context.Background())
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "Keep.md"), results[0].Path)
+	assert.Equal(t, "visible", results[0].Text)
+}
+
 func TestSearcher_ListPendingTasks_ReturnsLineNumbersAndRelativePaths(t *testing.T) {
 	requireRipgrep(t)
 
@@ -135,6 +152,26 @@ func TestSearcher_ListPendingTasks_NoResults(t *testing.T) {
 	results, err := s.ListPending(context.Background())
 	require.NoError(t, err)
 	assert.Empty(t, results)
+}
+
+func TestSearcher_ListPendingTasks_IncludesHiddenNotesAndIgnoredByDefaultNotes(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join(".hidden", "Task.md"), "- [ ] hidden task\n")
+	writeTaskFixture(t, root, "IgnoredByRipgrep.md", "- [ ] still included\n")
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".ignore"), []byte("IgnoredByRipgrep.md\n"), 0o644))
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPending(context.Background())
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+
+	paths := []string{results[0].Path, results[1].Path}
+	assert.Contains(t, paths, filepath.Join(".hidden", "Task.md"))
+	assert.Contains(t, paths, "IgnoredByRipgrep.md")
 }
 
 func TestSearcher_ListPendingTasks_DoesNotMatchPlainBullets(t *testing.T) {

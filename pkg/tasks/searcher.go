@@ -76,9 +76,11 @@ func NewSearcher(vaultPath string, ignore []string) (*Searcher, error) {
 
 // ListPending returns pending markdown checkbox items across the vault.
 func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
-	args := []string{"--json", "--type", "md"}
+	args := []string{"--json", "--type", "md", "--hidden", "--no-ignore"}
 	for _, pattern := range s.ignore {
-		args = append(args, "--glob", fmt.Sprintf("!%s", pattern))
+		for _, glob := range ignoreGlobs(pattern) {
+			args = append(args, "--glob", fmt.Sprintf("!%s", glob))
+		}
 	}
 	args = append(args, "-e", pendingTaskPattern, s.vaultPath)
 
@@ -112,6 +114,32 @@ func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 	})
 
 	return results, nil
+}
+
+func ignoreGlobs(pattern string) []string {
+	pattern = filepath.ToSlash(pattern)
+
+	globs := []string{pattern}
+	if strings.Contains(pattern, "/") {
+		globs = append(globs, pattern+"/**", "**/"+pattern, "**/"+pattern+"/**")
+		return globs
+	}
+
+	globs = append(globs, "**/"+pattern, pattern+"/**", "**/"+pattern+"/**")
+	return dedupeGlobs(globs)
+}
+
+func dedupeGlobs(globs []string) []string {
+	seen := make(map[string]struct{}, len(globs))
+	result := make([]string, 0, len(globs))
+	for _, glob := range globs {
+		if _, ok := seen[glob]; ok {
+			continue
+		}
+		seen[glob] = struct{}{}
+		result = append(result, glob)
+	}
+	return result
 }
 
 func (s *Searcher) parseOutput(data []byte) ([]Task, error) {
