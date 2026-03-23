@@ -8,6 +8,7 @@ import (
 type Note struct {
 	Path        string
 	Name        string
+	RawContent  string
 	Content     string
 	Frontmatter map[string]any
 	Tags        []string
