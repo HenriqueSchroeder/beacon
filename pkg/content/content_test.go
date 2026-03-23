@@ -164,6 +164,22 @@ func TestPrepend_WithFrontmatter_InsertsAfterFrontmatter(t *testing.T) {
 	}
 }
 
+func TestPrepend_WithFrontmatterCRLF_PreservesLineEndingsAndBlankLine(t *testing.T) {
+	initial := "---\r\ntitle: Test\r\ndate: 2026-01-01\r\n---\r\n\r\n# Body\r\n"
+	path := writeTempFile(t, initial)
+	m := New()
+
+	if err := m.Prepend(path, "Prepended line."); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readFile(t, path)
+	want := "---\r\ntitle: Test\r\ndate: 2026-01-01\r\n---\r\n\r\nPrepended line.\r\n# Body\r\n"
+	if got != want {
+		t.Fatalf("unexpected CRLF prepend result:\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
 func TestPrepend_EmptyContent_ReturnsError(t *testing.T) {
 	path := writeTempFile(t, "body\n")
 	m := New()

@@ -93,7 +93,7 @@ Examples:
 			return err
 		}
 
-		isContentOp := createAppend || createPrepend || strings.TrimSpace(text) != ""
+		isContentOp := createAppend || createPrepend
 
 		if isContentOp {
 			// "get or create" semantics: create the note if it doesn't exist
@@ -109,7 +109,10 @@ Examples:
 				return err
 			}
 			fmt.Printf("✓ Note created: %s\n", notePath)
-			return nil
+
+			if strings.TrimSpace(text) == "" {
+				return nil
+			}
 		}
 
 		// Apply content manipulation

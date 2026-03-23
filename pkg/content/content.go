@@ -59,16 +59,17 @@ func (m *Manipulator) Prepend(path, text string) error {
 
 	content := string(existing)
 	insertAt := FindFrontmatterEnd(content)
+	nl := detectLineEnding(content)
 
 	// Skip the blank line immediately after closing --- so that the prepended
 	// content lands after the separator blank line, not before it.
-	if insertAt > 0 && insertAt < len(content) && content[insertAt] == '\n' {
-		insertAt++
+	if insertAt > 0 && nl != "" && strings.HasPrefix(content[insertAt:], nl) {
+		insertAt += len(nl)
 	}
 
 	// Ensure the inserted text ends with a newline
-	if !strings.HasSuffix(text, "\n") {
-		text += "\n"
+	if !strings.HasSuffix(text, "\n") && !strings.HasSuffix(text, "\r\n") {
+		text += nl
 	}
 
 	result := content[:insertAt] + text + content[insertAt:]
@@ -81,13 +82,8 @@ func (m *Manipulator) Prepend(path, text string) error {
 // Both LF (\n) and CRLF (\r\n) line endings are supported.
 func FindFrontmatterEnd(content string) int {
 	// Detect line ending style from the opening delimiter
-	var nl string
-	switch {
-	case strings.HasPrefix(content, "---\r\n"):
-		nl = "\r\n"
-	case strings.HasPrefix(content, "---\n"):
-		nl = "\n"
-	default:
+	nl := detectLineEnding(content)
+	if !strings.HasPrefix(content, "---"+nl) {
 		return 0
 	}
 
@@ -101,6 +97,17 @@ func FindFrontmatterEnd(content string) int {
 	}
 
 	return len(openDelim) + idx + len(closePattern)
+}
+
+func detectLineEnding(content string) string {
+	switch {
+	case strings.HasPrefix(content, "---\r\n"), strings.Contains(content, "\r\n"):
+		return "\r\n"
+	case strings.HasPrefix(content, "---\n"), strings.Contains(content, "\n"):
+		return "\n"
+	default:
+		return "\n"
+	}
 }
 
 // Snippet returns a single-line preview of text, truncated to maxLen characters.
