@@ -139,6 +139,17 @@ beacon property add tags urgent Projects/Roadmap.md
 
 `beacon property` operates on an explicit vault-relative `.md` path. `get` prints the raw scalar value when possible and YAML for list values, while `set` and `add` update the note in place for automation-friendly workflows. When writing, Beacon normalizes the frontmatter block through YAML serialization, so comments and hand-crafted formatting are not preserved.
 
+### Show — read a note directly in the terminal
+
+```bash
+beacon show "Projects/Roadmap.md"   # exact vault-relative path
+beacon show "Roadmap"               # basename lookup
+beacon show "Project Roadmap"       # title fallback
+beacon show "Roadmap" --no-frontmatter
+```
+
+`beacon show` prints the note content without extra CLI framing, so it stays pipe-friendly. The first slice supports lookup by relative path, basename, optional `.md` suffix, and note title. Use `--no-frontmatter` to hide the YAML block and print only the markdown body.
+
 ### Validate — find broken links before they rot
 
 ```bash

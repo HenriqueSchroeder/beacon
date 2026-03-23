@@ -68,7 +68,7 @@ func (v *FileVault) ListNotes(ctx context.Context) ([]Note, error) {
 			return nil
 		}
 
-		note, err := v.parseNote(fullPath, relPath)
+		note, err := v.parseNote(fullPath, relPath, false)
 		if err != nil {
 			return fmt.Errorf("vault: failed to parse %s: %w", relPath, err)
 		}
@@ -139,11 +139,11 @@ func (v *FileVault) GetNote(ctx context.Context, path string) (*Note, error) {
 		return nil, fmt.Errorf("vault: note not found: %w", err)
 	}
 
-	return v.parseNote(fullPath, path)
+	return v.parseNote(fullPath, path, true)
 }
 
 // parseNote reads a file and parses its frontmatter and content.
-func (v *FileVault) parseNote(fullPath, relPath string) (*Note, error) {
+func (v *FileVault) parseNote(fullPath, relPath string, includeRaw bool) (*Note, error) {
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("vault: failed to read file: %w", err)
@@ -174,9 +174,15 @@ func (v *FileVault) parseNote(fullPath, relPath string) (*Note, error) {
 	name := v.extractName(contentStr, relPath)
 	tags := v.extractTags(fm)
 
+	rawContent := ""
+	if includeRaw {
+		rawContent = string(data)
+	}
+
 	return &Note{
 		Path:        relPath,
 		Name:        name,
+		RawContent:  rawContent,
 		Content:     contentStr,
 		Frontmatter: fm,
 		Tags:        tags,
