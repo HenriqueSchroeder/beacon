@@ -149,7 +149,7 @@ func splitFrontmatter(content, nl string) (map[string]any, string, error) {
 	}
 
 	if idx == -1 || bodyStart == -1 {
-		return nil, "", fmt.Errorf("property: invalid frontmatter block")
+		return map[string]any{}, content, nil
 	}
 
 	raw := content[start : start+idx]
@@ -182,8 +182,15 @@ func writeDocument(path string, doc *document) error {
 }
 
 func detectLineEnding(content string) string {
-	if strings.Contains(content, "\r\n") {
+	switch {
+	case strings.HasPrefix(content, "---\r\n"):
 		return "\r\n"
+	case strings.HasPrefix(content, "---\n"):
+		return "\n"
+	case strings.Contains(content, "\r\n"):
+		return "\r\n"
+	case strings.Contains(content, "\n"):
+		return "\n"
 	}
 	return "\n"
 }

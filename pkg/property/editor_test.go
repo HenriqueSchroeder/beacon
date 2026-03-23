@@ -77,6 +77,25 @@ func TestEditorSet_PreservesCRLFLineEndings(t *testing.T) {
 	}
 }
 
+func TestEditorSet_UsesOpeningFenceLineEndingWhenBodyContainsCRLF(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyNote(t, vaultPath, "note.md", "---\nstatus: todo\n---\n# Note\r\n")
+
+	editor := NewEditor(vaultPath)
+
+	if err := editor.Set("note.md", "status", "done"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyNote(t, vaultPath, "note.md")
+	if strings.Count(got, "---") != 2 {
+		t.Fatalf("expected a single frontmatter block, got %q", got)
+	}
+	if !strings.HasPrefix(got, "---\nstatus: done\n---\n") {
+		t.Fatalf("expected existing LF frontmatter to be updated, got %q", got)
+	}
+}
+
 func TestEditorAdd_AppendsUniqueListValue(t *testing.T) {
 	vaultPath := t.TempDir()
 	writePropertyNote(t, vaultPath, "note.md", "---\ntags:\n  - work\n---\n# Note\n")
@@ -209,6 +228,25 @@ func TestEditorGet_AllowsFrontmatterClosingDelimiterAtEOF(t *testing.T) {
 	}
 	if value != "done" {
 		t.Fatalf("expected done, got %#v", value)
+	}
+}
+
+func TestEditorSet_TreatsUnterminatedFenceAsPlainMarkdown(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyNote(t, vaultPath, "note.md", "---\n# Note\nBody\n")
+
+	editor := NewEditor(vaultPath)
+
+	if err := editor.Set("note.md", "status", "done"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyNote(t, vaultPath, "note.md")
+	if !strings.HasPrefix(got, "---\nstatus: done\n---\n") {
+		t.Fatalf("expected a new frontmatter block to be prepended, got %q", got)
+	}
+	if !strings.Contains(got, "---\n# Note\nBody\n") {
+		t.Fatalf("expected original markdown body to be preserved, got %q", got)
 	}
 }
 

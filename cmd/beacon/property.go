@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/HenriqueSchroeder/beacon/pkg/config"
 	prop "github.com/HenriqueSchroeder/beacon/pkg/property"
@@ -98,8 +99,11 @@ func formatPropertyValue(value any) (string, error) {
 	switch v := value.(type) {
 	case string:
 		return v, nil
-	case fmt.Stringer:
-		return v.String(), nil
+	case time.Time:
+		if v.Hour() == 0 && v.Minute() == 0 && v.Second() == 0 && v.Nanosecond() == 0 {
+			return v.Format("2006-01-02"), nil
+		}
+		return v.Format(time.RFC3339Nano), nil
 	case nil:
 		return "", nil
 	default:

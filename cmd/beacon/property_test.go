@@ -121,6 +121,21 @@ func TestPropertyGetCommand_ErrorsWhenKeyMissing(t *testing.T) {
 	}
 }
 
+func TestPropertyGetCommand_PrintsTimestampAsYAMLScalar(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyCommandNote(t, vaultPath, "note.md", "---\ndate: 2026-03-22\n---\n# Note\n")
+	configPath := writePropertyConfig(t, vaultPath)
+
+	output, err := executePropertyCommandWithError("--config", configPath, "property", "get", "date", "note.md")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if strings.TrimSpace(output) != "2026-03-22" {
+		t.Fatalf("expected yaml scalar date, got %q", output)
+	}
+}
+
 func TestPropertySetCommand_RejectsPathOutsideVault(t *testing.T) {
 	vaultPath := t.TempDir()
 	configPath := writePropertyConfig(t, vaultPath)
