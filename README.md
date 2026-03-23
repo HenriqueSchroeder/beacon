@@ -129,6 +129,16 @@ beacon create "Q2 OKRs" --type=projects --path="Active/Q2 OKRs.md"
 
 Notes land in the right directory based on `type_paths` config. Templates use Go's `text/template` syntax with access to title, tags, date, and type.
 
+### Property — frontmatter updates without opening an editor
+
+```bash
+beacon property get status Projects/Roadmap.md
+beacon property set status done Projects/Roadmap.md
+beacon property add tags urgent Projects/Roadmap.md
+```
+
+`beacon property` operates on an explicit vault-relative `.md` path. `get` prints the raw scalar value when possible and YAML for list values, while `set` and `add` update the note in place for automation-friendly workflows. When writing, Beacon normalizes the frontmatter block through YAML serialization, so comments and hand-crafted formatting are not preserved.
+
 ### Validate — find broken links before they rot
 
 ```bash
@@ -243,6 +253,7 @@ beacon/
 │   ├── search.go      # multi-mode search
 │   ├── create.go      # note creation
 │   ├── daily.go       # daily notes
+│   ├── property.go    # frontmatter property management
 │   ├── move.go        # move & rename with backlink updates
 │   └── validate.go    # link validation
 ├── pkg/
@@ -251,6 +262,7 @@ beacon/
 │   ├── search/        # ripgrep + vault-based searchers
 │   ├── create/        # note creation logic
 │   ├── daily/         # daily note find-or-create logic
+│   ├── property/      # single-note frontmatter editing
 │   ├── templates/     # template loading & rendering
 │   ├── validate/      # link validation with fuzzy matching
 │   ├── move/          # note mover with backlink updates
@@ -269,8 +281,8 @@ beacon/
 - [x] Wiki-link validation with fuzzy suggestions
 - [x] Daily notes with `--yesterday`/`--tomorrow`
 - [x] Move & rename with automatic backlink updates
-- [ ] Content manipulation (append/prepend)
-- [ ] Frontmatter/property management
+- [x] Content manipulation (append/prepend)
+- [x] Frontmatter/property management (`get`, `set`, `add`)
 - [ ] Git integration & auto-sync
 - [ ] Interactive TUI mode
 
