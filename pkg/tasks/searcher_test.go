@@ -374,6 +374,40 @@ func TestSearcher_ListPendingTasks_NormalizesFileSeparators(t *testing.T) {
 	assert.Equal(t, filepath.Join("archive", "projects", "Roadmap.md"), results[0].Path)
 }
 
+func TestSearcher_ListPendingTasks_FiltersByMidStringFilenameFragment(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, "Roadmap.md", "- [ ] roadmap\n")
+	writeTaskFixture(t, root, "Map.md", "- [ ] map only\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "map.md")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "Roadmap.md", results[0].Path)
+	assert.Equal(t, "roadmap", results[0].Text)
+}
+
+func TestSearcher_ListPendingTasks_FiltersByMidStringPathFragment(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("archive", "notes", "Inbox.md"), "- [ ] notes hit\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "other", "Inbox.md"), "- [ ] other hit\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "ive/not")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "notes", "Inbox.md"), results[0].Path)
+	assert.Equal(t, "notes hit", results[0].Text)
+}
+
 func TestSearcher_ListPendingTasks_EmptyFileFilterBehavesLikeUnfilteredListing(t *testing.T) {
 	requireRipgrep(t)
 
