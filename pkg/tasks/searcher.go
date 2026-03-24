@@ -76,6 +76,16 @@ func NewSearcher(vaultPath string, ignore []string) (*Searcher, error) {
 
 // ListPending returns pending markdown checkbox items across the vault.
 func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
+	return s.listPending(ctx, "")
+}
+
+// ListPendingWithFileFilter returns pending tasks limited to paths that contain
+// the provided vault-relative file fragment.
+func (s *Searcher) ListPendingWithFileFilter(ctx context.Context, fileFilter string) ([]Task, error) {
+	return s.listPending(ctx, fileFilter)
+}
+
+func (s *Searcher) listPending(ctx context.Context, fileFilter string) ([]Task, error) {
 	args := []string{"--json", "--type", "md", "--hidden", "--no-ignore"}
 	for _, pattern := range s.ignore {
 		if hasGlobMeta(pattern) {
@@ -84,6 +94,9 @@ func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 		for _, glob := range ignoreGlobs(pattern) {
 			args = append(args, "--glob", fmt.Sprintf("!%s", glob))
 		}
+	}
+	for _, glob := range fileFilterGlobs(fileFilter) {
+		args = append(args, "--glob", glob)
 	}
 	args = append(args, "-e", pendingTaskPattern, ".")
 
@@ -110,6 +123,7 @@ func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 		return nil, err
 	}
 	results = s.filterIgnored(results)
+	results = filterByFile(results, fileFilter)
 
 	sort.Slice(results, func(i, j int) bool {
 		if results[i].Path != results[j].Path {
@@ -122,7 +136,7 @@ func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 }
 
 func ignoreGlobs(pattern string) []string {
-	pattern = filepath.ToSlash(pattern)
+	pattern = normalizeTaskPath(pattern)
 
 	globs := []string{pattern}
 	if strings.Contains(pattern, "/") {
@@ -165,6 +179,21 @@ func (s *Searcher) filterIgnored(results []Task) []Task {
 	return filtered
 }
 
+func filterByFile(results []Task, fileFilter string) []Task {
+	if fileFilter == "" {
+		return results
+	}
+
+	filter := normalizeTaskPath(fileFilter)
+	filtered := make([]Task, 0, len(results))
+	for _, task := range results {
+		if strings.Contains(normalizeTaskPath(task.Path), filter) {
+			filtered = append(filtered, task)
+		}
+	}
+	return filtered
+}
+
 func shouldIgnore(relPath string, ignore []string) bool {
 	nativeRelPath := filepath.FromSlash(relPath)
 
@@ -190,9 +219,47 @@ func shouldIgnore(relPath string, ignore []string) bool {
 }
 
 func normalizeRipgrepPath(path string) string {
-	path = filepath.ToSlash(path)
+	path = normalizeTaskPath(path)
 	path = strings.TrimPrefix(path, "./")
 	return path
+}
+
+func normalizeTaskPath(path string) string {
+	return strings.ReplaceAll(path, "\\", "/")
+}
+
+func fileFilterGlobs(fileFilter string) []string {
+	fileFilter = normalizeTaskPath(fileFilter)
+	if fileFilter == "" {
+		return nil
+	}
+
+	// Only prefilter when the fragment includes path structure or a filename-like
+	// suffix. Bare substrings such as "notes" must still match
+	// "archive/notes/Inbox.md", which a glob cannot express safely.
+	if !strings.Contains(fileFilter, "/") && !strings.Contains(fileFilter, ".") {
+		return nil
+	}
+
+	escaped := escapeGlobPattern(fileFilter)
+	globs := []string{"**/" + escaped + "**"}
+	if strings.Contains(fileFilter, "/") {
+		globs = append(globs, "**/"+escaped+"/**")
+	}
+	return globs
+}
+
+func escapeGlobPattern(pattern string) string {
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`*`, `\*`,
+		`?`, `\?`,
+		`[`, `\[`,
+		`]`, `\]`,
+		`{`, `\{`,
+		`}`, `\}`,
+	)
+	return replacer.Replace(pattern)
 }
 
 func (s *Searcher) parseOutput(data []byte) ([]Task, error) {

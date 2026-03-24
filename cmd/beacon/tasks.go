@@ -9,7 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var tasksFile string
+
 func init() {
+	tasksCmd.Flags().StringVar(&tasksFile, "file", "", "filter tasks by vault-relative file path substring")
 	rootCmd.AddCommand(tasksCmd)
 }
 
@@ -28,7 +31,7 @@ var tasksCmd = &cobra.Command{
 			return fmt.Errorf("failed to create task searcher: %w", err)
 		}
 
-		results, err := s.ListPending(context.Background())
+		results, err := s.ListPendingWithFileFilter(context.Background(), tasksFile)
 		if err != nil {
 			return fmt.Errorf("failed to list tasks: %w", err)
 		}

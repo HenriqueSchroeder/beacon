@@ -156,9 +156,12 @@ beacon show "Roadmap" --no-frontmatter
 beacon tasks
 # Inbox.md:3 follow up with design
 # Projects/Roadmap.md:12 ship CLI tasks command
+
+beacon tasks --file "Projects/"
+# Projects/Roadmap.md:12 ship CLI tasks command
 ```
 
-`beacon tasks` scans markdown files with ripgrep and prints each unchecked `- [ ]` item as `path:line text`. This first slice is intentionally read-only: filters, JSON output, and `tasks complete` remain follow-up work.
+`beacon tasks` scans markdown files with ripgrep and prints each unchecked `- [ ]` item as `path:line text`. Use `--file` to keep only matches whose vault-relative path contains the provided substring. The command remains intentionally read-only: tag filters, due-date filters, JSON output, and `tasks complete` remain follow-up work.
 
 ### Validate — find broken links before they rot
 

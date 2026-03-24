@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -320,6 +321,129 @@ func TestShouldIgnore_UsesNativePathMatchingWithSlashInput(t *testing.T) {
 	assert.True(t, shouldIgnore("archive/task.md", []string{"archive"}))
 	assert.True(t, shouldIgnore("archive/task.md", []string{filepath.Join("archive", "*.md")}))
 	assert.False(t, shouldIgnore("archive/foo/task.md", []string{filepath.Join("archive", "*")}))
+}
+
+func TestSearcher_ListPendingTasks_FiltersByFileSubstring(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("notes", "Inbox.md"), "- [ ] visible\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "notes", "Inbox.md"), "- [ ] hidden\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "archive/notes")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "notes", "Inbox.md"), results[0].Path)
+	assert.Equal(t, "hidden", results[0].Text)
+}
+
+func TestSearcher_ListPendingTasks_FiltersByBarePathSubstring(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("archive", "notes", "Inbox.md"), "- [ ] visible\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "projects", "Inbox.md"), "- [ ] hidden\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "notes")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "notes", "Inbox.md"), results[0].Path)
+	assert.Equal(t, "visible", results[0].Text)
+}
+
+func TestSearcher_ListPendingTasks_NormalizesFileSeparators(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("archive", "projects", "Roadmap.md"), "- [ ] visible\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "notes", "Roadmap.md"), "- [ ] hidden\n")
+
+	filter := strings.ReplaceAll(filepath.Join("archive", "projects"), "/", "\\")
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), filter)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "projects", "Roadmap.md"), results[0].Path)
+}
+
+func TestSearcher_ListPendingTasks_EmptyFileFilterBehavesLikeUnfilteredListing(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, "A.md", "- [ ] first\n")
+	writeTaskFixture(t, root, "B.md", "- [ ] second\n")
+
+	unfiltered, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+	filtered, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	want, err := unfiltered.ListPending(context.Background())
+	require.NoError(t, err)
+	got, err := filtered.ListPendingWithFileFilter(context.Background(), "")
+	require.NoError(t, err)
+
+	assert.Equal(t, want, got)
+}
+
+func TestSearcher_ListPendingTasks_PreservesDeterministicOrderingAfterFileFilter(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("z", "Task.md"), "- [ ] third\n")
+	writeTaskFixture(t, root, filepath.Join("a", "Task.md"), "- [ ] first\n- [ ] second\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "Task.md")
+	require.NoError(t, err)
+	require.Len(t, results, 3)
+	assert.Equal(t, filepath.Join("a", "Task.md"), results[0].Path)
+	assert.Equal(t, 1, results[0].Line)
+	assert.Equal(t, filepath.Join("a", "Task.md"), results[1].Path)
+	assert.Equal(t, 2, results[1].Line)
+	assert.Equal(t, filepath.Join("z", "Task.md"), results[2].Path)
+	assert.Equal(t, 1, results[2].Line)
+}
+
+func TestSearcher_ListPendingTasks_NoResultsAfterFileFilter(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, "Inbox.md", "- [ ] task\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "missing")
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestSearcher_ListPendingTasks_FileFilterIsCaseSensitive(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("archive", "notes", "Inbox.md"), "- [ ] lower\n")
+	writeTaskFixture(t, root, filepath.Join("Archive", "notes", "Inbox.md"), "- [ ] upper\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPendingWithFileFilter(context.Background(), "archive/notes")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "notes", "Inbox.md"), results[0].Path)
+	assert.Equal(t, "lower", results[0].Text)
 }
 
 func writeTaskFixture(t *testing.T, root, relPath, content string) {
