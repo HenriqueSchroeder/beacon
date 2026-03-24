@@ -55,11 +55,6 @@ func (v *Viewer) Show(ctx context.Context, query string, opts Options) (Output, 
 
 func (v *Viewer) resolvePath(ctx context.Context, query string) (string, error) {
 	normalizedQuery := normalizeQuery(query)
-
-	if shouldResolveFromNotesFirst(query) {
-		return v.resolveFromNotes(ctx, query, normalizedQuery)
-	}
-
 	pathMatches, err := v.findPathMatches(ctx, normalizedQuery)
 	if err != nil {
 		return "", err
@@ -151,11 +146,6 @@ func normalizeQuery(value string) string {
 	normalized := filepath.ToSlash(strings.TrimSpace(value))
 	normalized = strings.TrimSuffix(normalized, ".md")
 	return strings.ToLower(normalized)
-}
-
-func shouldResolveFromNotesFirst(query string) bool {
-	normalized := filepath.ToSlash(strings.TrimSpace(query))
-	return !strings.Contains(normalized, "/") && strings.ContainsAny(normalized, " \t")
 }
 
 func ambiguousTargetError(query string, matches map[string]struct{}) error {

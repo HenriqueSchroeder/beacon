@@ -139,8 +139,9 @@ func TestViewer_Show_PrefersPathListingBeforeFullNoteParsing(t *testing.T) {
 	assert.Equal(t, "# Target Note\n", output.Content)
 }
 
-func TestViewer_Show_TitleLookupSkipsPathListing(t *testing.T) {
+func TestViewer_Show_TitleLookupFallsBackAfterPathMiss(t *testing.T) {
 	viewer := NewViewer(showTitleOnlyVault{
+		paths: []string{},
 		notes: []vault.Note{
 			{
 				Path:       "target-note.md",
@@ -156,6 +157,26 @@ func TestViewer_Show_TitleLookupSkipsPathListing(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "target-note.md", output.Path)
 	assert.Equal(t, "# Project Roadmap\n", output.Content)
+}
+
+func TestViewer_Show_SpacedBasenameStillUsesPathListing(t *testing.T) {
+	viewer := NewViewer(showSpacedBasenamePathOnlyVault{
+		paths: []string{"Project Roadmap.md"},
+		notes: map[string]vault.Note{
+			"Project Roadmap.md": {
+				Path:       "Project Roadmap.md",
+				Name:       "Different Title",
+				RawContent: "# Different Title\n",
+				Content:    "# Different Title\n",
+			},
+		},
+	})
+
+	output, err := viewer.Show(context.Background(), "Project Roadmap", Options{})
+
+	require.NoError(t, err)
+	assert.Equal(t, "Project Roadmap.md", output.Path)
+	assert.Equal(t, "# Different Title\n", output.Content)
 }
 
 func TestViewer_Show_NoFrontmatterPlainMarkdownNote(t *testing.T) {
@@ -244,6 +265,7 @@ func (v showPathOnlyVault) ListNotePaths(context.Context) ([]string, error) {
 }
 
 type showTitleOnlyVault struct {
+	paths []string
 	notes []vault.Note
 }
 
@@ -262,5 +284,26 @@ func (v showTitleOnlyVault) GetNote(_ context.Context, path string) (*vault.Note
 }
 
 func (v showTitleOnlyVault) ListNotePaths(context.Context) ([]string, error) {
-	return nil, fmt.Errorf("ListNotePaths should not be used for title-based show resolution")
+	return v.paths, nil
+}
+
+type showSpacedBasenamePathOnlyVault struct {
+	paths []string
+	notes map[string]vault.Note
+}
+
+func (v showSpacedBasenamePathOnlyVault) ListNotes(context.Context) ([]vault.Note, error) {
+	return nil, fmt.Errorf("ListNotes should not be used for spaced basename resolution")
+}
+
+func (v showSpacedBasenamePathOnlyVault) GetNote(_ context.Context, path string) (*vault.Note, error) {
+	note, ok := v.notes[path]
+	if !ok {
+		return nil, fmt.Errorf("note not found: %s", path)
+	}
+	return &note, nil
+}
+
+func (v showSpacedBasenamePathOnlyVault) ListNotePaths(context.Context) ([]string, error) {
+	return v.paths, nil
 }
