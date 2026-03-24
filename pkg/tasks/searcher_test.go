@@ -284,6 +284,12 @@ func TestSearcher_ListPendingTasks_KeepsWildcardPathIgnoresConsistentWithFileVau
 	assert.Equal(t, "still visible", results[0].Text)
 }
 
+func TestShouldIgnore_UsesNativePathMatchingWithSlashInput(t *testing.T) {
+	assert.True(t, shouldIgnore("archive/task.md", []string{"archive"}))
+	assert.True(t, shouldIgnore("archive/task.md", []string{filepath.Join("archive", "*.md")}))
+	assert.False(t, shouldIgnore("archive/foo/task.md", []string{filepath.Join("archive", "*")}))
+}
+
 func writeTaskFixture(t *testing.T, root, relPath, content string) {
 	t.Helper()
 
