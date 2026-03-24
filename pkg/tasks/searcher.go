@@ -166,21 +166,22 @@ func (s *Searcher) filterIgnored(results []Task) []Task {
 }
 
 func shouldIgnore(relPath string, ignore []string) bool {
+	nativeRelPath := filepath.FromSlash(relPath)
+
 	for _, pattern := range ignore {
-		pattern = filepath.ToSlash(pattern)
-		relPath = filepath.ToSlash(relPath)
+		nativePattern := filepath.FromSlash(pattern)
 
-		if strings.HasPrefix(relPath, pattern+"/") || relPath == pattern {
+		if strings.HasPrefix(nativeRelPath, nativePattern+string(filepath.Separator)) || nativeRelPath == nativePattern {
 			return true
 		}
 
-		if matched, _ := filepath.Match(pattern, relPath); matched {
+		if matched, _ := filepath.Match(nativePattern, nativeRelPath); matched {
 			return true
 		}
 
-		parts := strings.Split(relPath, "/")
+		parts := strings.Split(nativeRelPath, string(filepath.Separator))
 		for _, part := range parts {
-			if matched, _ := filepath.Match(pattern, part); matched {
+			if matched, _ := filepath.Match(nativePattern, part); matched {
 				return true
 			}
 		}
