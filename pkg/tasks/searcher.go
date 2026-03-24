@@ -95,9 +95,6 @@ func (s *Searcher) listPending(ctx context.Context, fileFilter string) ([]Task, 
 			args = append(args, "--glob", fmt.Sprintf("!%s", glob))
 		}
 	}
-	for _, glob := range fileFilterGlobs(fileFilter) {
-		args = append(args, "--glob", glob)
-	}
 	args = append(args, "-e", pendingTaskPattern, ".")
 
 	cmd := exec.CommandContext(ctx, s.rgPath, args...)
@@ -226,40 +223,6 @@ func normalizeRipgrepPath(path string) string {
 
 func normalizeTaskPath(path string) string {
 	return strings.ReplaceAll(path, "\\", "/")
-}
-
-func fileFilterGlobs(fileFilter string) []string {
-	fileFilter = normalizeTaskPath(fileFilter)
-	if fileFilter == "" {
-		return nil
-	}
-
-	// Only prefilter when the fragment includes path structure or a filename-like
-	// suffix. Bare substrings such as "notes" must still match
-	// "archive/notes/Inbox.md", which a glob cannot express safely.
-	if !strings.Contains(fileFilter, "/") && !strings.Contains(fileFilter, ".") {
-		return nil
-	}
-
-	escaped := escapeGlobPattern(fileFilter)
-	globs := []string{"**/" + escaped + "**"}
-	if strings.Contains(fileFilter, "/") {
-		globs = append(globs, "**/"+escaped+"/**")
-	}
-	return globs
-}
-
-func escapeGlobPattern(pattern string) string {
-	replacer := strings.NewReplacer(
-		`\`, `\\`,
-		`*`, `\*`,
-		`?`, `\?`,
-		`[`, `\[`,
-		`]`, `\]`,
-		`{`, `\{`,
-		`}`, `\}`,
-	)
-	return replacer.Replace(pattern)
 }
 
 func (s *Searcher) parseOutput(data []byte) ([]Task, error) {
