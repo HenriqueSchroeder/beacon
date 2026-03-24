@@ -139,6 +139,25 @@ func TestViewer_Show_PrefersPathListingBeforeFullNoteParsing(t *testing.T) {
 	assert.Equal(t, "# Target Note\n", output.Content)
 }
 
+func TestViewer_Show_TitleLookupSkipsPathListing(t *testing.T) {
+	viewer := NewViewer(showTitleOnlyVault{
+		notes: []vault.Note{
+			{
+				Path:       "target-note.md",
+				Name:       "Project Roadmap",
+				RawContent: "# Project Roadmap\n",
+				Content:    "# Project Roadmap\n",
+			},
+		},
+	})
+
+	output, err := viewer.Show(context.Background(), "Project Roadmap", Options{})
+
+	require.NoError(t, err)
+	assert.Equal(t, "target-note.md", output.Path)
+	assert.Equal(t, "# Project Roadmap\n", output.Content)
+}
+
 func TestViewer_Show_NoFrontmatterPlainMarkdownNote(t *testing.T) {
 	viewer := NewViewer(newShowVault(t, map[string]string{
 		"plain.md": "# Plain\nBody\n",
@@ -222,4 +241,26 @@ func (v showPathOnlyVault) GetNote(_ context.Context, path string) (*vault.Note,
 
 func (v showPathOnlyVault) ListNotePaths(context.Context) ([]string, error) {
 	return v.paths, nil
+}
+
+type showTitleOnlyVault struct {
+	notes []vault.Note
+}
+
+func (v showTitleOnlyVault) ListNotes(context.Context) ([]vault.Note, error) {
+	return v.notes, nil
+}
+
+func (v showTitleOnlyVault) GetNote(_ context.Context, path string) (*vault.Note, error) {
+	for _, note := range v.notes {
+		if note.Path == path {
+			return &note, nil
+		}
+	}
+
+	return nil, fmt.Errorf("note not found: %s", path)
+}
+
+func (v showTitleOnlyVault) ListNotePaths(context.Context) ([]string, error) {
+	return nil, fmt.Errorf("ListNotePaths should not be used for title-based show resolution")
 }
