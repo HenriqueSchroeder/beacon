@@ -157,6 +157,22 @@ func TestSearcher_ListPendingTasks_HandlesTabsAndSpacesBeforeCheckbox(t *testing
 	assert.Equal(t, "spaced task", results[1].Text)
 }
 
+func TestSearcher_ListPendingTasks_SupportsAsteriskAndPlusBullets(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, "Bullets.md", "* [ ] first\n+ [ ] second\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPending(context.Background())
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	assert.Equal(t, "first", results[0].Text)
+	assert.Equal(t, "second", results[1].Text)
+}
+
 func TestSearcher_ListPendingTasks_NoResults(t *testing.T) {
 	requireRipgrep(t)
 
@@ -249,6 +265,23 @@ func TestSearcher_ListPendingTasks_PreservesColonsInsideTaskText(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 	assert.Equal(t, "call API: review payload", results[0].Text)
+}
+
+func TestSearcher_ListPendingTasks_KeepsWildcardPathIgnoresConsistentWithFileVault(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, filepath.Join("archive", "foo", "Task.md"), "- [ ] still visible\n")
+	writeTaskFixture(t, root, filepath.Join("archive", "Task.md"), "- [ ] hidden\n")
+
+	s, err := NewSearcher(root, []string{filepath.Join("archive", "*")})
+	require.NoError(t, err)
+
+	results, err := s.ListPending(context.Background())
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, filepath.Join("archive", "foo", "Task.md"), results[0].Path)
+	assert.Equal(t, "still visible", results[0].Text)
 }
 
 func writeTaskFixture(t *testing.T, root, relPath, content string) {

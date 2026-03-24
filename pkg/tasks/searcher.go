@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const pendingTaskPattern = `^[[:space:]]*-\s\[\s\]\s+.+`
+const pendingTaskPattern = `^[[:space:]]*[-+*]\s\[\s\]\s+.+`
 
 type rgJSON struct {
 	Type string          `json:"type"`
@@ -78,6 +78,9 @@ func NewSearcher(vaultPath string, ignore []string) (*Searcher, error) {
 func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 	args := []string{"--json", "--type", "md", "--hidden", "--no-ignore"}
 	for _, pattern := range s.ignore {
+		if hasGlobMeta(pattern) {
+			continue
+		}
 		for _, glob := range ignoreGlobs(pattern) {
 			args = append(args, "--glob", fmt.Sprintf("!%s", glob))
 		}
@@ -106,6 +109,7 @@ func (s *Searcher) ListPending(ctx context.Context) ([]Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	results = s.filterIgnored(results)
 
 	sort.Slice(results, func(i, j int) bool {
 		if results[i].Path != results[j].Path {
@@ -122,6 +126,9 @@ func ignoreGlobs(pattern string) []string {
 
 	globs := []string{pattern}
 	if strings.Contains(pattern, "/") {
+		if hasGlobMeta(pattern) {
+			return dedupeGlobs(globs)
+		}
 		globs = append(globs, pattern+"/**")
 		return dedupeGlobs(globs)
 	}
@@ -141,6 +148,44 @@ func dedupeGlobs(globs []string) []string {
 		result = append(result, glob)
 	}
 	return result
+}
+
+func hasGlobMeta(pattern string) bool {
+	return strings.ContainsAny(pattern, "*?[")
+}
+
+func (s *Searcher) filterIgnored(results []Task) []Task {
+	filtered := make([]Task, 0, len(results))
+	for _, task := range results {
+		if shouldIgnore(task.Path, s.ignore) {
+			continue
+		}
+		filtered = append(filtered, task)
+	}
+	return filtered
+}
+
+func shouldIgnore(relPath string, ignore []string) bool {
+	for _, pattern := range ignore {
+		pattern = filepath.ToSlash(pattern)
+		relPath = filepath.ToSlash(relPath)
+
+		if strings.HasPrefix(relPath, pattern+"/") || relPath == pattern {
+			return true
+		}
+
+		if matched, _ := filepath.Match(pattern, relPath); matched {
+			return true
+		}
+
+		parts := strings.Split(relPath, "/")
+		for _, part := range parts {
+			if matched, _ := filepath.Match(pattern, part); matched {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func normalizeRipgrepPath(path string) string {
