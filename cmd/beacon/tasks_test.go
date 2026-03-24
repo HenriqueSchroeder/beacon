@@ -124,6 +124,57 @@ func TestTasksCommand_RejectsUnexpectedArguments(t *testing.T) {
 	assert.Contains(t, err.Error(), "unknown command")
 }
 
+func TestTasksCommand_FiltersByFileSubstring(t *testing.T) {
+	requireTasksRipgrep(t)
+
+	vaultPath := t.TempDir()
+	writeTasksNote(t, vaultPath, filepath.Join("notes", "Inbox.md"), "- [ ] visible\n")
+	writeTasksNote(t, vaultPath, filepath.Join("archive", "notes", "Inbox.md"), "- [ ] hidden\n")
+	configPath := writeTasksConfig(t, vaultPath)
+
+	output := executeTasksCommand(t, "--config", configPath, "tasks", "--file", "archive/notes")
+
+	assert.Equal(t, "archive/notes/Inbox.md:1 hidden\n", output)
+}
+
+func TestTasksCommand_FiltersByBarePathSubstring(t *testing.T) {
+	requireTasksRipgrep(t)
+
+	vaultPath := t.TempDir()
+	writeTasksNote(t, vaultPath, filepath.Join("archive", "notes", "Inbox.md"), "- [ ] visible\n")
+	writeTasksNote(t, vaultPath, filepath.Join("archive", "projects", "Inbox.md"), "- [ ] hidden\n")
+	configPath := writeTasksConfig(t, vaultPath)
+
+	output := executeTasksCommand(t, "--config", configPath, "tasks", "--file", "notes")
+
+	assert.Equal(t, "archive/notes/Inbox.md:1 visible\n", output)
+}
+
+func TestTasksCommand_FiltersByNestedPath(t *testing.T) {
+	requireTasksRipgrep(t)
+
+	vaultPath := t.TempDir()
+	writeTasksNote(t, vaultPath, filepath.Join("archive", "projects", "Roadmap.md"), "- [ ] ship\n")
+	writeTasksNote(t, vaultPath, filepath.Join("archive", "notes", "Roadmap.md"), "- [ ] skip\n")
+	configPath := writeTasksConfig(t, vaultPath)
+
+	output := executeTasksCommand(t, "--config", configPath, "tasks", "--file", filepath.Join("archive", "projects"))
+
+	assert.Equal(t, filepath.Join("archive", "projects", "Roadmap.md")+":1 ship\n", output)
+}
+
+func TestTasksCommand_PrintsNoTasksFoundAfterFileFilter(t *testing.T) {
+	requireTasksRipgrep(t)
+
+	vaultPath := t.TempDir()
+	writeTasksNote(t, vaultPath, "Inbox.md", "- [ ] task\n")
+	configPath := writeTasksConfig(t, vaultPath)
+
+	output := executeTasksCommand(t, "--config", configPath, "tasks", "--file", "missing")
+
+	assert.Equal(t, "No tasks found.\n", output)
+}
+
 func requireTasksRipgrep(t *testing.T) {
 	t.Helper()
 	if _, err := exec.LookPath("rg"); err != nil {
@@ -206,6 +257,7 @@ func executeTasksCommandWithError(args ...string) (string, error) {
 
 func resetTasksCommandState() {
 	cfgFile = ""
+	tasksFile = ""
 	rootCmd.SetOut(bytes.NewBuffer(nil))
 	rootCmd.SetErr(bytes.NewBuffer(nil))
 }
