@@ -189,6 +189,22 @@ func TestSearcher_ListPendingTasks_SupportsOrderedListCheckboxes(t *testing.T) {
 	assert.Equal(t, "second", results[1].Text)
 }
 
+func TestSearcher_ListPendingTasks_SupportsEmptyCheckboxes(t *testing.T) {
+	requireRipgrep(t)
+
+	root := t.TempDir()
+	writeTaskFixture(t, root, "EmptyTasks.md", "- [ ]\n1. [ ]\n")
+
+	s, err := NewSearcher(root, nil)
+	require.NoError(t, err)
+
+	results, err := s.ListPending(context.Background())
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	assert.Equal(t, "", results[0].Text)
+	assert.Equal(t, "", results[1].Text)
+}
+
 func TestSearcher_ListPendingTasks_NoResults(t *testing.T) {
 	requireRipgrep(t)
 

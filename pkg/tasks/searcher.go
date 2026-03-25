@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const pendingTaskPattern = `^[[:space:]]*(?:[-+*]|\d+\.)\s\[\s\]\s+.+`
+const pendingTaskPattern = `^[[:space:]]*(?:[-+*]|\d+\.)\s\[\s\](?:\s+.+)?$`
 
 type rgJSON struct {
 	Type string          `json:"type"`
