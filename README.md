@@ -135,9 +135,10 @@ Notes land in the right directory based on `type_paths` config. Templates use Go
 beacon property get status Projects/Roadmap.md
 beacon property set status done Projects/Roadmap.md
 beacon property add tags urgent Projects/Roadmap.md
+beacon property remove status Projects/Roadmap.md
 ```
 
-`beacon property` operates on an explicit vault-relative `.md` path. `get` prints the raw scalar value when possible and YAML for list values, while `set` and `add` update the note in place for automation-friendly workflows. When writing, Beacon normalizes the frontmatter block through YAML serialization, so comments and hand-crafted formatting are not preserved.
+`beacon property` operates on an explicit vault-relative `.md` path. `get` prints the raw scalar value when possible and YAML for list values, while `set`, `add`, and `remove` update the note in place for automation-friendly workflows. `remove` deletes an entire frontmatter key; removing a single list element remains follow-up work. When writing, Beacon normalizes the frontmatter block through YAML serialization, so comments and hand-crafted formatting are not preserved.
 
 ### Show — read a note directly in the terminal
 
@@ -306,7 +307,7 @@ beacon/
 - [x] Daily notes with `--yesterday`/`--tomorrow`
 - [x] Move & rename with automatic backlink updates
 - [x] Content manipulation (append/prepend)
-- [x] Frontmatter/property management (`get`, `set`, `add`)
+- [x] Frontmatter/property management (`get`, `set`, `add`, whole-key `remove`)
 - [ ] Git integration & auto-sync
 - [ ] Interactive TUI mode
 

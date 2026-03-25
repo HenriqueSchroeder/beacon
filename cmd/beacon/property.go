@@ -15,6 +15,7 @@ func init() {
 	propertyCmd.AddCommand(propertyGetCmd)
 	propertyCmd.AddCommand(propertySetCmd)
 	propertyCmd.AddCommand(propertyAddCmd)
+	propertyCmd.AddCommand(propertyRemoveCmd)
 	rootCmd.AddCommand(propertyCmd)
 }
 
@@ -82,6 +83,25 @@ var propertyAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("updated %s: %s\n", args[2], args[0])
+		return nil
+	},
+}
+
+var propertyRemoveCmd = &cobra.Command{
+	Use:   "remove <key> <note>",
+	Short: "Remove a frontmatter property from a note",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		editor, err := loadPropertyEditor()
+		if err != nil {
+			return err
+		}
+
+		if err := editor.Remove(args[1], args[0]); err != nil {
+			return err
+		}
+
+		fmt.Printf("updated %s: %s\n", args[1], args[0])
 		return nil
 	},
 }

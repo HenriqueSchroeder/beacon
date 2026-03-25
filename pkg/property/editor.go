@@ -85,6 +85,30 @@ func (e *Editor) Add(notePath, key string, value any) error {
 	return writeDocument(fullPath, doc)
 }
 
+// Remove deletes a frontmatter key.
+func (e *Editor) Remove(notePath, key string) error {
+	fullPath, err := e.resolveNotePath(notePath)
+	if err != nil {
+		return err
+	}
+
+	doc, err := readDocument(fullPath)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := doc.frontmatter[key]; !ok {
+		return fmt.Errorf("property: key %q not found", key)
+	}
+
+	delete(doc.frontmatter, key)
+	if len(doc.frontmatter) == 0 {
+		return atomicWrite(fullPath, []byte(doc.body))
+	}
+
+	return writeDocument(fullPath, doc)
+}
+
 func (e *Editor) resolveNotePath(notePath string) (string, error) {
 	if filepath.Ext(notePath) != ".md" {
 		return "", fmt.Errorf("property: note path must end in .md")
