@@ -272,6 +272,159 @@ func TestEditorSet_NormalizesFrontmatterFormatting(t *testing.T) {
 	}
 }
 
+func TestEditorRemove_DeletesExistingKey(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyNote(t, vaultPath, "note.md", "---\nstatus: todo\nowner: henrique\n---\n# Note\nBody\n")
+
+	editor := NewEditor(vaultPath)
+
+	if err := editor.Remove("note.md", "status"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyNote(t, vaultPath, "note.md")
+	if strings.Contains(got, "status:") {
+		t.Fatalf("expected status key to be removed, got %q", got)
+	}
+	if !strings.Contains(got, "owner: henrique") {
+		t.Fatalf("expected remaining keys to stay intact, got %q", got)
+	}
+	if !strings.HasSuffix(got, "# Note\nBody\n") {
+		t.Fatalf("expected markdown body to be preserved, got %q", got)
+	}
+}
+
+func TestEditorRemove_PreservesCRLFLineEndingsWhenFrontmatterRemains(t *testing.T) {
+	vaultPath := t.TempDir()
+	originalBody := "# Note\r\n\r\nParagraph\r\n"
+	writePropertyNote(t, vaultPath, "note.md", "---\r\nstatus: todo\r\nowner: henrique\r\n---\r\n"+originalBody)
+
+	editor := NewEditor(vaultPath)
+
+	if err := editor.Remove("note.md", "status"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyNote(t, vaultPath, "note.md")
+	if strings.Contains(got, "---\n") {
+		t.Fatalf("expected CRLF frontmatter to be preserved, got %q", got)
+	}
+	if !strings.Contains(got, "---\r\nowner: henrique\r\n---\r\n") {
+		t.Fatalf("expected remaining frontmatter to preserve CRLF, got %q", got)
+	}
+	if !strings.HasSuffix(got, originalBody) {
+		t.Fatalf("expected body to be preserved, got %q", got)
+	}
+}
+
+func TestEditorRemove_RemovesFrontmatterBlockWhenLastKeyDeleted(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyNote(t, vaultPath, "note.md", "---\nstatus: todo\n---\n# Note\nBody\n")
+
+	editor := NewEditor(vaultPath)
+
+	if err := editor.Remove("note.md", "status"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyNote(t, vaultPath, "note.md")
+	if strings.Contains(got, "---") {
+		t.Fatalf("expected frontmatter block to be removed, got %q", got)
+	}
+	if got != "# Note\nBody\n" {
+		t.Fatalf("expected body only after removing last key, got %q", got)
+	}
+}
+
+func TestEditorRemove_RemovesLastKeyAndPreservesCRLFBody(t *testing.T) {
+	vaultPath := t.TempDir()
+	originalBody := "# Note\r\nBody\r\n"
+	writePropertyNote(t, vaultPath, "note.md", "---\r\nstatus: todo\r\n---\r\n"+originalBody)
+
+	editor := NewEditor(vaultPath)
+
+	if err := editor.Remove("note.md", "status"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyNote(t, vaultPath, "note.md")
+	if strings.Contains(got, "---") {
+		t.Fatalf("expected frontmatter block to be removed, got %q", got)
+	}
+	if got != originalBody {
+		t.Fatalf("expected CRLF body to be preserved, got %q", got)
+	}
+}
+
+func TestEditorRemove_ErrorsWhenKeyMissing(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyNote(t, vaultPath, "note.md", "---\nstatus: todo\n---\n# Note\n")
+
+	editor := NewEditor(vaultPath)
+
+	err := editor.Remove("note.md", "owner")
+	if err == nil {
+		t.Fatal("expected error when removing missing key")
+	}
+	if !strings.Contains(err.Error(), `property: key "owner" not found`) {
+		t.Fatalf("expected missing-key error, got %v", err)
+	}
+}
+
+func TestEditorRemove_TreatsPlainMarkdownAsMissingKey(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyNote(t, vaultPath, "note.md", "# Note\nBody\n")
+
+	editor := NewEditor(vaultPath)
+
+	err := editor.Remove("note.md", "status")
+	if err == nil {
+		t.Fatal("expected error when removing missing key from plain markdown")
+	}
+	if !strings.Contains(err.Error(), `property: key "status" not found`) {
+		t.Fatalf("expected missing-key error, got %v", err)
+	}
+}
+
+func TestEditorRemove_PreservesMarkdownBodyAndPathValidation(t *testing.T) {
+	t.Run("preserves markdown body", func(t *testing.T) {
+		vaultPath := t.TempDir()
+		originalBody := "# Note\n\nParagraph\n- item\n"
+		writePropertyNote(t, vaultPath, "note.md", "---\nstatus: todo\n---\n"+originalBody)
+
+		editor := NewEditor(vaultPath)
+
+		if err := editor.Remove("note.md", "status"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got := readPropertyNote(t, vaultPath, "note.md")
+		if got != originalBody {
+			t.Fatalf("expected markdown body to be preserved, got %q", got)
+		}
+	})
+
+	t.Run("rejects note outside vault", func(t *testing.T) {
+		vaultPath := t.TempDir()
+		editor := NewEditor(vaultPath)
+
+		err := editor.Remove("../outside.md", "status")
+		if err == nil {
+			t.Fatal("expected error for path outside vault")
+		}
+	})
+
+	t.Run("rejects non-markdown path", func(t *testing.T) {
+		vaultPath := t.TempDir()
+		editor := NewEditor(vaultPath)
+
+		err := editor.Remove("note.txt", "status")
+		if err == nil {
+			t.Fatal("expected error for non-markdown path")
+		}
+	})
+}
+
 func writePropertyNote(t *testing.T, vaultPath, relPath, content string) {
 	t.Helper()
 

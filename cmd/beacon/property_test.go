@@ -80,6 +80,84 @@ func TestPropertyAddCommand_RejectsNonListField(t *testing.T) {
 	}
 }
 
+func TestPropertyRemoveCommand_DeletesExistingKey(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyCommandNote(t, vaultPath, "note.md", "---\nstatus: done\ntitle: Note\n---\n# Note\n")
+	configPath := writePropertyConfig(t, vaultPath)
+
+	output, err := executePropertyCommandWithError("--config", configPath, "property", "remove", "status", "note.md")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if strings.TrimSpace(output) != "updated note.md: status" {
+		t.Fatalf("expected exact confirmation output, got %q", output)
+	}
+
+	got := readPropertyCommandNote(t, vaultPath, "note.md")
+	if strings.Contains(got, "status:") {
+		t.Fatalf("expected status key to be removed, got %q", got)
+	}
+	if !strings.Contains(got, "title: Note") {
+		t.Fatalf("expected other keys to remain, got %q", got)
+	}
+}
+
+func TestPropertyRemoveCommand_RemovesLastFrontmatterKey(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyCommandNote(t, vaultPath, "note.md", "---\nstatus: done\n---\n# Note\n")
+	configPath := writePropertyConfig(t, vaultPath)
+
+	if _, err := executePropertyCommandWithError("--config", configPath, "property", "remove", "status", "note.md"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := readPropertyCommandNote(t, vaultPath, "note.md")
+	if strings.HasPrefix(got, "---\n") {
+		t.Fatalf("expected frontmatter to be removed, got %q", got)
+	}
+	if got != "# Note\n" {
+		t.Fatalf("expected note body to be preserved, got %q", got)
+	}
+}
+
+func TestPropertyRemoveCommand_ErrorsWhenKeyMissing(t *testing.T) {
+	vaultPath := t.TempDir()
+	writePropertyCommandNote(t, vaultPath, "note.md", "---\nstatus: done\n---\n# Note\n")
+	configPath := writePropertyConfig(t, vaultPath)
+
+	_, err := executePropertyCommandWithError("--config", configPath, "property", "remove", "owner", "note.md")
+	if err == nil {
+		t.Fatal("expected error for missing key")
+	}
+	if !strings.Contains(err.Error(), `property: key "owner" not found`) {
+		t.Fatalf("expected missing-key error, got %v", err)
+	}
+}
+
+func TestPropertyRemoveCommand_RejectsMissingNotePath(t *testing.T) {
+	vaultPath := t.TempDir()
+	configPath := writePropertyConfig(t, vaultPath)
+
+	_, err := executePropertyCommandWithError("--config", configPath, "property", "remove", "status")
+	if err == nil {
+		t.Fatal("expected error for missing note path")
+	}
+}
+
+func TestPropertyRemoveCommand_RejectsNonMarkdownPath(t *testing.T) {
+	vaultPath := t.TempDir()
+	configPath := writePropertyConfig(t, vaultPath)
+
+	_, err := executePropertyCommandWithError("--config", configPath, "property", "remove", "status", "note.txt")
+	if err == nil {
+		t.Fatal("expected error for non-markdown path")
+	}
+	if !strings.Contains(err.Error(), "note path must end in .md") {
+		t.Fatalf("expected non-markdown path validation error, got %v", err)
+	}
+}
+
 func TestPropertySetCommand_CreatesFrontmatterOnPlainMarkdownNote(t *testing.T) {
 	vaultPath := t.TempDir()
 	writePropertyCommandNote(t, vaultPath, "note.md", "# Note\nBody\n")
